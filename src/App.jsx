@@ -1456,6 +1456,26 @@ function TreningAPD() {
                     </button>
                 </div>
             )}
+
+            {/* Footer z copyright */}
+            <footer className="fixed bottom-0 left-0 right-0 bg-gray-900 text-white text-xs py-2 px-4 flex justify-between items-center z-10">
+                <div className="flex items-center space-x-4">
+                    <span>© 2025 Biokineticum Dariusz Mosler</span>
+                    <span className="text-gray-400">|</span>
+                    <span>Wszelkie prawa zastrzeżone</span>
+                </div>
+                <div className="flex items-center space-x-4">
+                    <a 
+                        href="mailto:biokineticum@proton.me" 
+                        className="text-blue-400 hover:text-blue-300 transition-colors"
+                        title="Kontakt"
+                    >
+                        📧 Kontakt
+                    </a>
+                    <span className="text-gray-400">|</span>
+                    <span className="text-gray-400">v1.0</span>
+                </div>
+            </footer>
         </div>
     );
 }
