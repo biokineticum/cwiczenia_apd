@@ -164,7 +164,8 @@ func _do_accept() -> void:
 		accepted.emit(_quest_id)
 		QuestManager.start_quest(_quest_id)
 	else:
-		QuestManager.clear_offer()
+		# done / rest — odblokuj renew
+		QuestManager.end_dialog()
 		QuestManager.movement_locked = false
 		dismissed.emit()
 
@@ -176,7 +177,7 @@ func _do_dismiss() -> void:
 	visible = false
 	title_label.visible = false
 	body_label.visible = false
-	QuestManager.clear_offer()
+	QuestManager.end_dialog()
 	QuestManager.movement_locked = false
 	dismissed.emit()
 

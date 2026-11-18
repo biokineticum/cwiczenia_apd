@@ -4,7 +4,8 @@ Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy 
 
 To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudności**, nie kliniczny SNR.
 
-**Dziecko (~5 lat, nie czyta):** instrukcje = **głos (TTS)**. Echo: domyślnie **4 symbole** na **planszy 3D** — dziewczynka **chodzi** w przedmioty i wkłada je do **kółek z cyframi 1–4** (bez klikania siatki UI). Burza: wskazanie obrazka. Tekst bodźca / szum → **tryb rodzica**.
+**Dziecko (~5 lat, nie czyta):** instrukcje = **głos (TTS)**. Echo: domyślnie **4 symbole** na **planszy 3D** — dziewczynka **chodzi** w przedmioty i wkłada je do **kółek z cyframi 1–4** (bez klikania siatki UI). Burza: wskazanie obrazka. Tekst bodźca / szum → **tryb rodzica**.  
+**Questy odnawialne:** po Echo/Burzy można wracać w nieskończoność — każda runda = nowe losowanie (badge first-clear nie blokuje).
 
 ## Wymagania
 
