@@ -1,5 +1,6 @@
 extends Area3D
 ## Strefa potwierdzenia ruchem: wejdź postacią (bez klikania kursorem).
+## One-shot: po wyzwoleniu monitoring wyłączany deferred.
 
 signal walked_in(zone: Area3D)
 
@@ -17,6 +18,7 @@ var kind: String = "accept" # accept | dismiss | choice | replay
 var _dwell_body: Node3D = null
 var _dwell_t: float = 0.0
 var _armed: bool = true
+var _fired: bool = false
 
 
 func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color(0.35, 0.75, 0.45), p_choice: String = "") -> void:
@@ -50,22 +52,33 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 
 func set_armed(on: bool) -> void:
 	_armed = on
-	monitoring = on
+	if not on:
+		_fired = true
+	set_deferred("monitoring", on)
 
 
 func _physics_process(delta: float) -> void:
-	if not _armed or _dwell_body == null:
+	if not _armed or _fired or _dwell_body == null:
 		_dwell_t = 0.0
 		return
 	_dwell_t += delta
 	if _dwell_t >= DWELL_SEC:
 		_dwell_t = 0.0
 		_armed = false
-		monitoring = false
-		walked_in.emit(self)
+		_fired = true
+		set_deferred("monitoring", false)
+		call_deferred("_emit_walked")
+
+
+func _emit_walked() -> void:
+	if not is_instance_valid(self):
+		return
+	walked_in.emit(self)
 
 
 func _on_enter(body: Node3D) -> void:
+	if _fired or not _armed:
+		return
 	if body.is_in_group("player"):
 		_dwell_body = body
 		_dwell_t = 0.0
