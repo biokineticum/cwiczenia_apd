@@ -1,17 +1,19 @@
 # Trening APD (`cwiczenia_apd`)
 
-**Web app for auditory processing disorder (APD) training** — speech-in-noise, sound recognition, lateralization, and audio–motor modules with therapist-oriented stats.
+**Web app for auditory processing (APD) training support** — speech-in-noise, sound recognition, lateralization, and audio–motor modules with therapist-oriented stats, light rewards, and mobile-first controls.
 
-For audiologists, speech therapists and clinicians working on auditory processing with patients (stereo headphones recommended).
+For audiologists, speech therapists and clinicians working on auditory processing with patients (stereo headphones recommended). **Training aid — not a diagnostic tool.**
 
 Live: [cwiczenia-apd.vercel.app](https://cwiczenia-apd.vercel.app)
 
 ## Features
 
-- Background noises: white, pink, brown, babble; SNR control via Web Audio API
-- Modules: speech in noise, environmental sounds, L/R lateralization & digit sequences, audio + motor commands
-- Therapist panel: session stats, export-oriented metrics, fatigue / timer settings
-- React + Vite + Tailwind
+- Background noises: white, pink, brown, babble; relative noise-level control via Web Audio API
+- Modules: speech in noise, environmental sounds (starter TTS), L/R lateralization & digit sequences, audio + motor commands
+- Mobile-first UI: bottom module nav, large touch targets, stereo-headphone prompts
+- Light gamification: points, daily streaks, badges (localStorage only)
+- Therapist / parent panel: session stats, export JSON, hidden answer keys
+- React + Vite (+ Tailwind CDN)
 
 ## Install & run
 

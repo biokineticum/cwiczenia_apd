@@ -1,1491 +1,1210 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
 import SEOContent from './components/SEOContent';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import CookiesBanner from './components/CookiesBanner';
 import Footer from './components/Footer';
+import RewardsBar, { NewBadgeToast } from './components/RewardsBar';
+import FeedbackBanner from './components/FeedbackBanner';
+import MobileModuleNav from './components/MobileModuleNav';
+import TherapistHint from './components/TherapistHint';
+import {
+  SENTENCES,
+  SOUNDS_LIBRARY,
+  AUDIO_MOTOR_COMMANDS,
+  NOISE_OPTIONS,
+  MODULE_META,
+} from './lib/exerciseData';
+import {
+  getAudioContext,
+  unlockAudio,
+  stopAllAudio,
+  playNoise,
+  speakText,
+  playTone,
+  relativeNoiseGain,
+  scoreSpeechAnswer,
+} from './lib/audio';
+import { loadRewards, recordTrial } from './lib/gamification';
 
-// Ikony SVG
-const Timer = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><polyline points="12,6 12,12 16,14" /></svg>;
-const Download = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7,10 12,15 17,10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>;
-const Mic = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" y1="19" x2="12" y2="23" /><line x1="8" y1="23" x2="16" y2="23" /></svg>;
-const Volume2 = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z" /><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07" /></svg>;
-const Headphones = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6" /><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3z" /><path d="M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3z" /></svg>;
-const Target = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>;
-const BarChart3 = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M3 3v18h18" /><path d="M18 17V9" /><path d="M13 17V5" /><path d="M8 17v-3" /></svg>;
-const Settings = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V5a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.07a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>;
-const Info = () => <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" /></svg>;
+const Icon = {
+  Timer: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  ),
+  Download: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <path d="M12 3v12m0 0l4-4m-4 4l-4-4M5 21h14" />
+    </svg>
+  ),
+  Mic: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0014 0M12 17v4m-4 0h8" />
+    </svg>
+  ),
+  Volume: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <path d="M11 5L6 9H2v6h4l5 4V5z" />
+      <path d="M15.5 8.5a5 5 0 010 7" />
+    </svg>
+  ),
+  Headphones: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <path d="M3 18v-6a9 9 0 0118 0v6" />
+      <path d="M21 19a2 2 0 01-2 2h-1a2 2 0 01-2-2v-3a2 2 0 012-2h3zM3 19a2 2 0 002 2h1a2 2 0 002-2v-3a2 2 0 00-2-2H3z" />
+    </svg>
+  ),
+  Target: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5" />
+      <circle cx="12" cy="12" r="1" />
+    </svg>
+  ),
+  Chart: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <path d="M4 19V5M4 19h16M8 17V10M12 17V7M16 17v-4" />
+    </svg>
+  ),
+  Info: () => (
+    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" aria-hidden>
+      <circle cx="12" cy="12" r="9" />
+      <path d="M12 8h.01M11 12h1v4h1" />
+    </svg>
+  ),
+};
+
+const MODULE_ICONS = {
+  speechInNoise: <Icon.Mic />,
+  soundRecognition: <Icon.Volume />,
+  lateralization: <Icon.Headphones />,
+  audioMotor: <Icon.Target />,
+};
+
+const MODULE_SHORT = {
+  speechInNoise: 'Mowa',
+  soundRecognition: 'Dźwięki',
+  lateralization: 'L/P',
+  audioMotor: 'Ruch',
+};
 
 function TreningAPD() {
-    // Stan główny
-    const [currentView, setCurrentView] = useState('home'); // 'home' or 'privacy'
-    const [currentModule, setCurrentModule] = useState('speechInNoise');
-    const [sessionTime, setSessionTime] = useState(0);
-    const [fatigueLevel, setFatigueLevel] = useState(0);
-    const [showParentPanel, setShowParentPanel] = useState(false);
-    const [volumeCalibrated, setVolumeCalibrated] = useState(false);
-    const [manualSNR, setManualSNR] = useState(10);
-    const [useManualSNR, setUseManualSNR] = useState(false);
+  const [currentView, setCurrentView] = useState('home');
+  const [currentModule, setCurrentModule] = useState('speechInNoise');
+  const [sessionTime, setSessionTime] = useState(0);
+  const [fatigueLevel, setFatigueLevel] = useState(0);
+  const [showParentPanel, setShowParentPanel] = useState(false);
+  const [volumeCalibrated, setVolumeCalibrated] = useState(false);
+  const [manualSNR, setManualSNR] = useState(10);
+  const [useManualSNR, setUseManualSNR] = useState(false);
+  const [hideMotorText, setHideMotorText] = useState(false);
 
-    // Adaptacyjna kontrola trudności
-    const [adaptiveState, setAdaptiveState] = useState({
+  const [adaptiveState, setAdaptiveState] = useState({
+    correctStreak: 0,
+    reversals: 0,
+    currentSNR: 10,
+    stepSize: 2,
+    history: [],
+  });
+
+  const [speechInNoiseState, setSpeechInNoiseState] = useState({
+    currentSentence: '',
+    sentenceWords: [],
+    noiseType: 'white',
+    userInput: '',
+  });
+
+  const [soundRecognitionState, setSoundRecognitionState] = useState({
+    options: [],
+    correctSound: '',
+    noiseType: 'white',
+  });
+
+  const [lateralizationState, setLateralizationState] = useState({
+    mode: 'simple',
+    currentEar: '',
+    panningValue: 0,
+    digitSequence: [],
+    userDigitSequence: [],
+    sequenceLength: 3,
+  });
+
+  const [audioMotorState, setAudioMotorState] = useState({
+    currentCommand: '',
+  });
+
+  const [rewards, setRewards] = useState(() => ({ ...loadRewards(), sessionPoints: 0 }));
+  const [feedback, setFeedback] = useState({ kind: null, message: '' });
+  const [newBadges, setNewBadges] = useState([]);
+  const digitTimersRef = useRef([]);
+
+  useEffect(() => {
+    if (currentView !== 'home') return undefined;
+    const timer = setInterval(() => {
+      setSessionTime((prev) => prev + 1);
+      setFatigueLevel((prev) => Math.min(100, prev + 0.08));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [currentView]);
+
+  useEffect(() => () => {
+    stopAllAudio();
+    digitTimersRef.current.forEach(clearTimeout);
+  }, []);
+
+  const showFeedback = useCallback((kind, message) => {
+    setFeedback({ kind, message });
+  }, []);
+
+  const applyTrialResult = useCallback(
+    (isCorrect, moduleId) => {
+      let gained = 0;
+      let unlocked = [];
+      setRewards((prev) => {
+        const result = recordTrial(prev, {
+          correct: isCorrect,
+          moduleId,
+          pointsIfCorrect: 10,
+        });
+        gained = result.gained;
+        unlocked = result.newBadges;
+        return result.state;
+      });
+      // Defer toast so state flush from setRewards is not raced by callers
+      queueMicrotask(() => {
+        if (unlocked.length) setNewBadges(unlocked);
+        showFeedback(
+          isCorrect ? 'success' : 'error',
+          isCorrect
+            ? gained
+              ? `Brawo! +${gained} pkt`
+              : 'Brawo!'
+            : 'Spróbuj jeszcze raz — bez pośpiechu'
+        );
+      });
+    },
+    [showFeedback]
+  );
+
+  const updateAdaptive = useCallback((isCorrect) => {
+    setAdaptiveState((prev) => {
+      let newSNR = prev.currentSNR;
+      let newStepSize = prev.stepSize;
+      let newReversals = prev.reversals;
+
+      if (isCorrect) {
+        const newStreak = prev.correctStreak + 1;
+        if (newStreak >= 2) {
+          newSNR = Math.max(-20, newSNR - newStepSize);
+          if (
+            newSNR !== prev.currentSNR &&
+            prev.history.length > 0 &&
+            prev.history[prev.history.length - 1] > newSNR
+          ) {
+            newReversals += 1;
+            newStepSize = newReversals >= 2 ? Math.max(0.5, newStepSize / 2) : newStepSize;
+          }
+        }
+        return {
+          ...prev,
+          correctStreak: newStreak,
+          currentSNR: newSNR,
+          stepSize: newStepSize,
+          reversals: newReversals,
+          history: [...prev.history, newSNR],
+        };
+      }
+
+      newSNR = Math.min(30, newSNR + newStepSize);
+      if (prev.history.length > 0 && prev.history[prev.history.length - 1] < newSNR) {
+        newReversals += 1;
+        newStepSize = newReversals >= 2 ? Math.max(0.5, newStepSize / 2) : newStepSize;
+      }
+      return {
+        ...prev,
         correctStreak: 0,
-        reversals: 0,
-        currentSNR: 10,
-        stepSize: 2,
-        history: []
+        currentSNR: newSNR,
+        stepSize: newStepSize,
+        reversals: newReversals,
+        history: [...prev.history, newSNR],
+      };
     });
-
-    // Moduł: Mowa w szumie
-    const [speechInNoiseState, setSpeechInNoiseState] = useState({
-        currentSentence: '',
-        sentenceWords: [],
-        noiseType: 'white',
-        userInput: ''
-    });
-
-    // Moduł: Rozpoznawanie dźwięków
-    const [soundRecognitionState, setSoundRecognitionState] = useState({
-        options: [],
-        correctSound: '',
-        noiseType: 'white',
-        soundsLibrary: [
-            { name: 'Pies szczeka', sound: 'hau hau hau', image: '🐕' },
-            { name: 'Kot miauczy', sound: 'miau miau miau', image: '🐱' },
-            { name: 'Krowa robi', sound: 'muuu muuu', image: '🐄' },
-            { name: 'Samochód jedzie', sound: 'wruum wruum wruum', image: '🚗' },
-            { name: 'Deszcz pada', sound: 'kap kap kap kap', image: '🌧️' },
-            { name: 'Ptaki śpiewają', sound: 'ćwir ćwir ćwir', image: '🐦' },
-            { name: 'Dzwonek dzwoni', sound: 'dzyń dzyń dzyń', image: '🔔' },
-            { name: 'Bęben bije', sound: 'bum bum bum bum', image: '🥁' }
-        ]
-    });
-
-    // Lateralizacja - ROZBUDOWANA o sekwencje cyfr
-    const [lateralizationState, setLateralizationState] = useState({
-        mode: 'simple',
-        currentEar: '',
-        panningValue: 0,
-        digitSequence: [],
-        userDigitSequence: [],
-        sequenceLength: 3,
-        currentDigitIndex: 0
-    });
-
-    // Audio + Motor
-    const [audioMotorState, setAudioMotorState] = useState({
-        currentCommand: '',
-        commands: [
-            'Klaśnij jeden raz',
-            'Tupnij dwa razy',
-            'Podnieś prawą rękę',
-            'Dotknij nosa',
-            'Klaśnij dwa razy i tupnij',
-            'Podnieś lewą nogę',
-            'Dotknij prawego ucha',
-            'Zrób krok w przód',
-            'Podnieś obie ręce',
-            'Dotknij lewego kolana'
-        ],
-        parentCheck: false
-    });
-
-    // ROZBUDOWANA BAZA ZDAŃ - 80+ zdań!
-    const sentences = [
-        // Życie codzienne - podstawowe
-        'Mama gotuje obiad',
-        'Tata czyta gazetę',
-        'Babcia piecze ciasto',
-        'Dziadek ogląda telewizję',
-        'Kot śpi na kanapie',
-        'Pies biegnie po parku',
-        'Dziecko bawi się zabawkami',
-        'Kura znosi jajka',
-
-        // Szkoła i nauka
-        'Nauczycielka pisze na tablicy',
-        'Uczniowie rozwiązują zadania',
-        'Dziecko rysuje kredkami',
-        'Chłopiec czyta książkę',
-        'Dziewczynka liczy do dziesięciu',
-        'Klasa śpiewa piosenkę',
-        'Dzieci biegną na boisko',
-        'Wychowawczyni opowiada bajkę',
-
-        // Emocje i stany
-        'Dziecko jest szczęśliwe',
-        'Mama się martwi',
-        'Tata jest zmęczony',
-        'Babcia czuje się dobrze',
-        'Kot jest głodny',
-        'Pies jest smutny',
-        'Dziewczynka płacze',
-        'Chłopiec się śmieje',
-
-        // Kolory i opisy
-        'Czerwona róża pachnie pięknie',
-        'Niebieska koszula wisi w szafie',
-        'Żółty słonecznik rośnie w ogrodzie',
-        'Zielona trawa jest mokra',
-        'Biały kot myje się łapką',
-        'Czarna kurtka wisi na wieszaku',
-        'Różowe kwiaty kwitną wiosną',
-        'Brązowy pies goni piłkę',
-
-        // Trudne grupy spółgłoskowe
-        'Trzeba kupić chleb',
-        'Krzak krzewi się w krzakach',
-        'Wszyscy chrzną w kościele',
-        'Chrząszcz brzmi w trzcinie',
-        'Przyniosę prześliczne prezenty',
-        'Strzał strzelił bardzo głośno',
-        'Pszczoła brzuczy przy pstryku',
-        'Żółć żółtego żółwia',
-
-        // Czasy przeszłe
-        'Wczoraj jedliśmy pizzę',
-        'Dzieci bawiły się w parku',
-        'Mama przygotowała śniadanie',
-        'Tata naprawił rower',
-        'Kot złapał mysz',
-        'Pies szczekał na listonosza',
-        'Babcia upiekła ciasto',
-        'Dziadek czytał bajki',
-
-        // Czasy przyszłe
-        'Jutro pójdziemy do kina',
-        'Mama ugotuje zupę',
-        'Dzieci będą się uczyć',
-        'Tata kupi nowy samochód',
-        'Kot będzie spał',
-        'Pies pobiegnie na spacer',
-        'Babcia odwiedzi nas',
-        'Dziadek pokaże zdjęcia',
-
-        // Homofony i podobnie brzmiące
-        'Tata pije wodę',
-        'Tata bije wodę',
-        'Kot łowi myszy',
-        'Kot łowi muchy',
-        'Mama szyje sukienkę',
-        'Mama myje sukienkę',
-        'Dziecko bierze książkę',
-        'Dziecko chowa książkę',
-
-        // Złożone struktury
-        'Gdy pada deszcz, dzieci zostają w domu',
-        'Kiedy mama gotuje, tata pomaga',
-        'Ponieważ jest zimno, zakładamy kurtki',
-        'Chociaż jest trudno, dziecko się uczy',
-        'Jeśli będzie słonecznie, pójdziemy na plażę',
-        'Zanim pójdziemy spać, myjemy zęby',
-        'Dopóki nie skończy pracy, tata zostanie',
-        'Wszędzie gdzie spojrzysz, są kwiaty',
-
-        // Pytania
-        'Czy mama przygotowała obiad?',
-        'Gdzie jest moja zabawka?',
-        'Kiedy będziemy jeść kolację?',
-        'Dlaczego kot śpi tak długo?',
-        'Jak nazywa się ten ptak?',
-        'Kto włączył muzykę?',
-        'Co robimy jutro?',
-        'Którą drogą idziemy do szkoły?',
-
-        // Rozkazy i prośby
-        'Zamknij drzwi',
-        'Przynieś mi książkę',
-        'Włącz światło proszę',
-        'Usiądź przy stole',
-        'Umyj ręce przed jedzeniem',
-        'Połóż zabawki na półkę',
-        'Ubierz się ciepło',
-        'Posprzątaj swój pokój'
-    ];
-
-    // Refs dla audio
-    const audioContextRef = useRef(null);
-    const noiseRef = useRef(null);
-    const speechRef = useRef(null);
-
-    // Timer sesji
-    useEffect(() => {
-        const timer = setInterval(() => {
-            setSessionTime(prev => prev + 1);
-            setFatigueLevel(prev => Math.min(100, prev + 0.1));
-        }, 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    // Inicjalizacja AudioContext
-    const initializeAudioContext = useCallback(() => {
-        if (!audioContextRef.current) {
-            try {
-                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-            } catch (e) {
-                console.warn('AudioContext not supported');
-            }
-        }
-        return audioContextRef.current;
-    }, []);
-
-    // ZAAWANSOWANY GENERATOR SZUMÓW - różne typy z dwoma kanałami
-    const generateNoise = useCallback((ctx, type, duration = 10) => {
-        console.log(`🔊 GENEROWANIE SZUMU ${type.toUpperCase()} - ${duration}s dwukanałowego`);
-
-        const bufferSize = ctx.sampleRate * duration;
-        const noiseBuffer = ctx.createBuffer(2, bufferSize, ctx.sampleRate);
-
-        for (let channel = 0; channel < noiseBuffer.numberOfChannels; channel++) {
-            const channelData = noiseBuffer.getChannelData(channel);
-
-            switch (type) {
-                case 'white':
-                    for (let i = 0; i < bufferSize; i++) {
-                        channelData[i] = (Math.random() * 2 - 1) * 0.3;
-                    }
-                    break;
-
-                case 'pink':
-                    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-                    for (let i = 0; i < bufferSize; i++) {
-                        const white = Math.random() * 2 - 1;
-                        b0 = 0.99886 * b0 + white * 0.0555179;
-                        b1 = 0.99332 * b1 + white * 0.0750759;
-                        b2 = 0.96900 * b2 + white * 0.1538520;
-                        b3 = 0.86650 * b3 + white * 0.3104856;
-                        b4 = 0.55000 * b4 + white * 0.5329522;
-                        b5 = -0.7616 * b5 - white * 0.0168980;
-                        const pink = b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362;
-                        b6 = white * 0.115926;
-                        channelData[i] = pink * 0.11;
-                    }
-                    break;
-
-                case 'brown':
-                    let lastOut = 0;
-                    for (let i = 0; i < bufferSize; i++) {
-                        const white = Math.random() * 2 - 1;
-                        const brown = (lastOut + (0.02 * white)) / 1.02;
-                        lastOut = brown;
-                        channelData[i] = brown * 3.5;
-                    }
-                    break;
-
-                case 'babble':
-                    // Symulacja głosów w tle
-                    for (let i = 0; i < bufferSize; i++) {
-                        const freq = 200 + Math.random() * 2000;
-                        const time = i / ctx.sampleRate;
-                        channelData[i] = Math.sin(2 * Math.PI * freq * time) * 0.15 * (Math.random() * 0.5 + 0.5);
-                    }
-                    break;
-
-                default:
-                    // Biały szum jako domyślny
-                    for (let i = 0; i < bufferSize; i++) {
-                        channelData[i] = (Math.random() * 2 - 1) * 0.3;
-                    }
-            }
-        }
-
-        return noiseBuffer;
-    }, []);
-
-    // Adaptacyjny algorytm trudności
-    const updateAdaptive = useCallback((isCorrect) => {
-        setAdaptiveState(prev => {
-            let newSNR = prev.currentSNR;
-            let newStepSize = prev.stepSize;
-            let newReversals = prev.reversals;
-
-            if (isCorrect) {
-                const newStreak = prev.correctStreak + 1;
-                if (newStreak >= 2) {
-                    newSNR = Math.max(-20, newSNR - newStepSize);
-                    if (newSNR !== prev.currentSNR && prev.history.length > 0 &&
-                        prev.history[prev.history.length - 1] > newSNR) {
-                        newReversals++;
-                        newStepSize = newReversals >= 2 ? Math.max(0.5, newStepSize / 2) : newStepSize;
-                    }
-                }
-
-                return {
-                    ...prev,
-                    correctStreak: newStreak,
-                    currentSNR: newSNR,
-                    stepSize: newStepSize,
-                    reversals: newReversals,
-                    history: [...prev.history, newSNR]
-                };
-            } else {
-                newSNR = Math.min(30, newSNR + newStepSize);
-                if (prev.history.length > 0 && prev.history[prev.history.length - 1] < newSNR) {
-                    newReversals++;
-                    newStepSize = newReversals >= 2 ? Math.max(0.5, newStepSize / 2) : newStepSize;
-                }
-
-                return {
-                    ...prev,
-                    correctStreak: 0,
-                    currentSNR: newSNR,
-                    stepSize: newStepSize,
-                    reversals: newReversals,
-                    history: [...prev.history, newSNR]
-                };
-            }
-        });
-    }, []);
-
-    // 🎯 SYSTEM RÓWNOLEGŁYCH KANAŁÓW - KLUCZ APLIKACJI!
-    const playParallelChannelsTest = useCallback((noiseType, speechText, snr = 10) => {
-        window.testStartTime = Date.now();
-        const effectiveSNR = useManualSNR ? manualSNR : snr;
-
-        const ctx = initializeAudioContext();
-        console.log(`T=0.000: 🚀 ROZPOCZYNAM TEST RÓWNOLEGŁYCH KANAŁÓW`);
-        console.log(`T=0.000: Szum: ${noiseType}, SNR: ${effectiveSNR}dB, Tekst: "${speechText}"`);
-
-        // KANAŁ 1: SZUM - startuje NATYCHMIAST
-        const noiseBuffer = generateNoise(ctx, noiseType, 10);
-        const noiseSource = ctx.createBufferSource();
-        const noiseGain = ctx.createGain();
-
-        noiseSource.buffer = noiseBuffer;
-
-        const noiseLevel = Math.pow(10, -effectiveSNR / 20) * 0.5;
-        noiseGain.gain.setValueAtTime(noiseLevel, ctx.currentTime);
-        console.log(`T=0.000: 🔊 SZUM ${noiseType.toUpperCase()} ROZPOCZĘTY - poziom: ${noiseLevel.toFixed(3)}`);
-
-        noiseSource.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        noiseSource.start(ctx.currentTime);
-        noiseSource.stop(ctx.currentTime + 10);
-
-        // KANAŁ 2: MOWA - startuje po 2-2.5 sekundach
-        const speechDelay = 2 + Math.random() * 0.5;
-        console.log(`T=${speechDelay.toFixed(3)}: 🎤 MOWA ZAPLANOWANA`);
-
-        setTimeout(() => {
-            console.log(`T=${(Date.now() - window.testStartTime) / 1000}: 🗣️ MOWA START - "${speechText}"`);
-
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(speechText);
-                utterance.lang = 'pl-PL';
-                utterance.rate = 0.8;
-                utterance.volume = 0.7;
-
-                utterance.onstart = () => {
-                    console.log(`T=${(Date.now() - window.testStartTime) / 1000}: ✅ SYNTEZA MOWY ROZPOCZĘTA`);
-                };
-
-                utterance.onend = () => {
-                    console.log(`T=${(Date.now() - window.testStartTime) / 1000}: ⏹️ SYNTEZA MOWY ZAKOŃCZONA`);
-                };
-
-                window.speechSynthesis.speak(utterance);
-            }
-        }, speechDelay * 1000);
-    }, [generateNoise, initializeAudioContext, manualSNR, useManualSNR]);
-
-    // Test dźwięków zwierząt z szumem
-    const playSoundWithNoise = useCallback((soundText, noiseType, snr = 15) => {
-        window.testStartTime = Date.now();
-        const effectiveSNR = useManualSNR ? manualSNR : snr;
-
-        const ctx = initializeAudioContext();
-        console.log(`T=0.000: 🔊 TEST DŹWIĘKU Z SZUMEM: "${soundText}"`);
-
-        const noiseBuffer = generateNoise(ctx, noiseType, 8);
-        const noiseSource = ctx.createBufferSource();
-        const noiseGain = ctx.createGain();
-
-        noiseSource.buffer = noiseBuffer;
-        const noiseLevel = Math.pow(10, -effectiveSNR / 20) * 0.4;
-        noiseGain.gain.setValueAtTime(noiseLevel, ctx.currentTime);
-
-        noiseSource.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        noiseSource.start(ctx.currentTime);
-        noiseSource.stop(ctx.currentTime + 8);
-
-        console.log(`T=0.000: 🌊 SZUM ${noiseType.toUpperCase()} ROZPOCZĘTY`);
-
-        setTimeout(() => {
-            console.log(`T=${(Date.now() - window.testStartTime) / 1000}: 🐾 DŹWIĘK START - "${soundText}"`);
-
-            if ('speechSynthesis' in window) {
-                const utterance = new SpeechSynthesisUtterance(soundText);
-                utterance.lang = 'pl-PL';
-                utterance.rate = 0.7;
-                utterance.volume = 0.8;
-                window.speechSynthesis.speak(utterance);
-            }
-        }, 1500);
-    }, [generateNoise, initializeAudioContext, manualSNR, useManualSNR]);
-
-    // Odtwarzanie z panningiem (Web Audio API)
-    const playWithPanning = useCallback((frequency, pan = 0, duration = 1000) => {
-        const ctx = initializeAudioContext();
-
-        const oscillator = ctx.createOscillator();
-        const gainNode = ctx.createGain();
-        const panNode = ctx.createStereoPanner();
-
-        oscillator.frequency.setValueAtTime(frequency, ctx.currentTime);
-        oscillator.type = 'sine';
-
-        panNode.pan.setValueAtTime(pan, ctx.currentTime);
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
-
-        oscillator.connect(panNode);
-        panNode.connect(gainNode);
-        gainNode.connect(ctx.destination);
-
-        oscillator.start();
-        oscillator.stop(ctx.currentTime + duration / 1000);
-    }, [initializeAudioContext]);
-
-    // Nowe ćwiczenie - mowa w szumie
-    const startSpeechInNoise = useCallback(() => {
-        const sentence = sentences[Math.floor(Math.random() * sentences.length)];
-        const words = sentence.toLowerCase().split(' ');
-
-        setSpeechInNoiseState(prev => ({
-            ...prev,
-            currentSentence: sentence,
-            sentenceWords: words,
-            userInput: ''
-        }));
-
-        playParallelChannelsTest(speechInNoiseState.noiseType, sentence, useManualSNR ? manualSNR : adaptiveState.currentSNR);
-    }, [sentences, playParallelChannelsTest, speechInNoiseState.noiseType, manualSNR, useManualSNR, adaptiveState.currentSNR]);
-
-    // Sprawdzanie odpowiedzi
-    const checkSpeechAnswer = useCallback(() => {
-        const userWords = speechInNoiseState.userInput.toLowerCase().trim().split(/\s+/);
-        const targetWords = speechInNoiseState.sentenceWords;
-
-        let correctWords = 0;
-        userWords.forEach(word => {
-            if (targetWords.includes(word)) correctWords++;
-        });
-
-        const accuracy = correctWords / targetWords.length;
-        const isCorrect = accuracy >= 0.7;
-
-        updateAdaptive(isCorrect);
-
-        console.log(`📊 Odpowiedź: ${(accuracy * 100).toFixed(1)}% poprawna (${correctWords}/${targetWords.length} słów)`);
-
-        setSpeechInNoiseState(prev => ({
-            ...prev,
-            currentSentence: '',
-            sentenceWords: [],
-            userInput: ''
-        }));
-    }, [speechInNoiseState, updateAdaptive]);
-
-    // Moduł rozpoznawania dźwięków
-    const startSoundRecognition = useCallback(() => {
-        const correctIndex = Math.floor(Math.random() * soundRecognitionState.soundsLibrary.length);
-        const correct = soundRecognitionState.soundsLibrary[correctIndex];
-
-        const shuffled = [...soundRecognitionState.soundsLibrary]
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 4);
-
-        if (!shuffled.includes(correct)) {
-            shuffled[0] = correct;
-        }
-
-        setSoundRecognitionState(prev => ({
-            ...prev,
-            options: shuffled,
-            correctSound: correct.name
-        }));
-
-        playSoundWithNoise(correct.sound, soundRecognitionState.noiseType, useManualSNR ? manualSNR : adaptiveState.currentSNR);
-    }, [soundRecognitionState.soundsLibrary, soundRecognitionState.noiseType, playSoundWithNoise, manualSNR, useManualSNR, adaptiveState.currentSNR]);
-
-    // Lateralizacja - prosta z dźwiękami
-    const startSimpleLateralization = useCallback(() => {
-        const ears = ['Lewe ucho', 'Prawe ucho'];
-        const selectedEar = ears[Math.floor(Math.random() * ears.length)];
-        const pan = selectedEar === 'Lewe ucho' ? -1 : 1;
-
-        setLateralizationState(prev => ({
-            ...prev,
-            currentEar: selectedEar,
-            panningValue: pan
-        }));
-
-        console.log(`👂 LATERALIZACJA: ${selectedEar} (pan: ${pan})`);
-
-        // Użyj Web Audio API z prawdziwym panningiem
-        playWithPanning(800, pan, 1000);
-    }, [playWithPanning]);
-
-    // NOWA: Lateralizacja z sekwencjami cyfr
-    const startDigitSequence = useCallback(() => {
-        const length = lateralizationState.sequenceLength;
-        const sequence = Array.from({ length }, () => Math.floor(Math.random() * 10));
-
-        setLateralizationState(prev => ({
-            ...prev,
-            mode: 'sequence',
-            digitSequence: sequence,
-            userDigitSequence: [],
-            currentDigitIndex: 0
-        }));
-
-        playDigitSequenceWithPanning(sequence, () => {
-            console.log('🔢 SEKWENCJA CYFR ZAKOŃCZONA - czekam na odpowiedź');
-        });
-    }, [lateralizationState.sequenceLength]);
-
-    // ZAAWANSOWANE odtwarzanie sekwencji cyfr z szumem i panningiem  
-    const playDigitSequenceWithPanning = useCallback((sequence, onComplete) => {
-        window.testStartTime = Date.now();
-        const ctx = initializeAudioContext();
-
-        console.log(`🔢 SEKWENCJA CYFR START: ${sequence.join('-')} (alternating L-R z szumem)`);
-
-        // Szum w tle przez całą sekwencję
-        const noiseBuffer = generateNoise(ctx, 'white', sequence.length * 2);
-        const noiseSource = ctx.createBufferSource();
-        const noiseGain = ctx.createGain();
-
-        noiseSource.buffer = noiseBuffer;
-        const noiseLevel = 0.2; // Delikatny szum w tle
-        noiseGain.gain.setValueAtTime(noiseLevel, ctx.currentTime);
-
-        noiseSource.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        noiseSource.start(ctx.currentTime);
-        noiseSource.stop(ctx.currentTime + sequence.length * 2);
-
-        // Cyfry z alternującym panningiem
-        sequence.forEach((digit, index) => {
-            setTimeout(() => {
-                const pan = index % 2 === 0 ? -1 : 1;
-                const ear = pan < 0 ? 'LEWE' : 'PRAWE';
-
-                console.log(`T=${(index * 1.5).toFixed(1)}s: Cyfra "${digit}" → ${ear} UCHO (pan: ${pan})`);
-
-                // Tone z panningiem jako wskazanie ucha
-                playWithPanning(400 + (digit * 50), pan, 200);
-
-                // Mowa po krótkim opóźnieniu
-                setTimeout(() => {
-                    if ('speechSynthesis' in window) {
-                        const utterance = new SpeechSynthesisUtterance(digit.toString());
-                        utterance.lang = 'pl-PL';
-                        utterance.rate = 0.6;
-                        utterance.volume = 0.9;
-                        utterance.pitch = 1.0;
-
-                        window.speechSynthesis.speak(utterance);
-                    }
-                }, 300);
-
-                if (index === sequence.length - 1) {
-                    setTimeout(onComplete, 2000);
-                }
-            }, index * 1500);
-        });
-    }, [generateNoise, initializeAudioContext, playWithPanning]);
-
-    // Sprawdzanie sekwencji cyfr
-    const checkDigitSequence = useCallback(() => {
-        const correct = JSON.stringify(lateralizationState.digitSequence);
-        const user = JSON.stringify(lateralizationState.userDigitSequence);
-        const isCorrect = correct === user;
-
-        console.log(`🔍 SPRAWDZENIE SEKWENCJI:`);
-        console.log(`Prawidłowa: [${lateralizationState.digitSequence.join(', ')}]`);
-        console.log(`Podana: [${lateralizationState.userDigitSequence.join(', ')}]`);
-        console.log(`Wynik: ${isCorrect ? '✅ POPRAWNE' : '❌ BŁĘDNE'}`);
-
-        updateAdaptive(isCorrect);
-
-        setLateralizationState(prev => ({
-            ...prev,
-            digitSequence: [],
-            userDigitSequence: [],
-            currentDigitIndex: 0
-        }));
-    }, [lateralizationState, updateAdaptive]);
-
-    // Dodawanie cyfry do sekwencji użytkownika
-    const addDigitToSequence = useCallback((digit) => {
-        setLateralizationState(prev => {
-            const newSequence = [...prev.userDigitSequence, digit];
-            console.log(`➕ Dodano cyfrę: ${digit}, sekwencja: [${newSequence.join(', ')}]`);
-            return {
-                ...prev,
-                userDigitSequence: newSequence
-            };
-        });
-    }, []);
-
-    // Format czasu
-    const formatTime = (seconds) => {
-        const mins = Math.floor(seconds / 60);
-        const secs = seconds % 60;
-        return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
-
-    // SNR do koloru
-    const getSNRColor = (snr) => {
-        if (snr < -10) return 'text-red-600';
-        if (snr < 0) return 'text-orange-600';
-        if (snr < 10) return 'text-yellow-600';
-        if (snr < 20) return 'text-green-600';
-        return 'text-blue-600';
-    };
-
-    // Definicje modułów z uzasadnieniami terapeutycznymi
-    const modules = {
-        speechInNoise: {
-            name: 'Mowa w Szumie',
-            icon: <Mic />,
-            description: 'Rozpoznawanie mowy przy obecności szumu tła',
-            therapeutic: {
-                goal: 'Rozwój zdolności selektywnej uwagi słuchowej',
-                neurobiology: 'Wzmacnia funkcje kory słuchowej i mechanizmy maskowania wstecznego',
-                clinicalValue: 'Kluczowe dla funkcjonowania w środowisku klasowym i społecznym'
-            }
-        },
-        soundRecognition: {
-            name: 'Rozpoznawanie Dźwięków',
-            icon: <Volume2 />,
-            description: 'Identyfikacja dźwięków środowiskowych',
-            therapeutic: {
-                goal: 'Rozwój dyskryminacji słuchowej i pamięci dźwiękowej',
-                neurobiology: 'Aktywuje korteks słuchowy wtórny odpowiedzialny za rozpoznawanie wzorców',
-                clinicalValue: 'Podstawa dla rozwoju umiejętności językowych i czytania'
-            }
-        },
-        lateralization: {
-            name: 'Lateralizacja',
-            icon: <Headphones />,
-            description: 'Ćwiczenia przestrzennego słyszenia',
-            therapeutic: {
-                goal: 'Rozwój binauralnego przetwarzania i lokalizacji dźwięku',
-                neurobiology: 'Wzmacnia połączenia między półkulami mózgu przez corpus callosum',
-                clinicalValue: 'Kluczowe dla umiejętności słuchania w hałasie i uwagi skoncentrowanej'
-            }
-        },
-        audioMotor: {
-            name: 'Audio-Motor',
-            icon: <Target />,
-            description: 'Integracja słuchu z ruchem',
-            therapeutic: {
-                goal: 'Synchronizacja procesów słuchowych z motorycznymi',
-                neurobiology: 'Integruje korę słuchową z korą motoryczną przez system lustrzanych neuronów',
-                clinicalValue: 'Wspiera rozwój mowy, rytmu i koordynacji ruchowej'
-            }
-        }
-    };
-
-    return (
-        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex flex-col pt-16">
-            <Navbar currentView={currentView} setCurrentView={setCurrentView} />
-
-            {currentView === 'privacy' ? (
-                <main className="flex-grow">
-                    <PrivacyPolicy />
-                </main>
-            ) : (
-                <main id="aplikacja" className="flex-grow max-w-7xl mx-auto w-full p-4 md:p-6 lg:p-8">
-                    {/* Header (Panel Główny) */}
-                    <header className="bg-white rounded-xl shadow-md p-6 mb-8 mt-4">
-                        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-                            <div className="text-center md:text-left">
-                                <h1 className="text-3xl font-bold text-gray-800">
-                                    🎧 Trening APD
-                                </h1>
-                                <p className="text-gray-600 mt-1">System terapii zaburzeń przetwarzania słuchowego</p>
-                            </div>
-
-                            <div className="flex items-center gap-4">
-                                <div className="text-center">
-                                    <div className="flex items-center gap-2 text-gray-600">
-                                        <Timer />
-                                        <span>{formatTime(sessionTime)}</span>
-                                    </div>
-                                    <div className="text-xs text-gray-500">Czas sesji</div>
-                                </div>
-
-                                <button
-                                    onClick={() => setShowParentPanel(!showParentPanel)}
-                                    className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 flex items-center gap-2"
-                                >
-                                    <BarChart3 />
-                                    Panel Terapeuty
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* GLOBALNY SUWAK SNR */}
-                        <div className="mt-6 bg-gray-50 rounded-lg p-4">
-                            <div className="flex items-center justify-between mb-3">
-                                <h3 className="font-semibold text-gray-800">🎛️ Globalny SNR Control</h3>
-                                <div className="flex items-center gap-3">
-                                    <span className="text-sm font-medium">AUTO</span>
-                                    <label className="relative inline-flex items-center cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            checked={useManualSNR}
-                                            onChange={(e) => setUseManualSNR(e.target.checked)}
-                                            className="sr-only peer"
-                                        />
-                                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                                    </label>
-                                    <span className="text-sm font-medium">MANUAL</span>
-                                </div>
-                            </div>
-
-                            {useManualSNR && (
-                                <div className="space-y-2">
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-sm font-medium min-w-16">SNR:</span>
-                                        <div className="flex-1 relative">
-                                            <input
-                                                type="range"
-                                                min="-20"
-                                                max="30"
-                                                step="0.5"
-                                                value={manualSNR}
-                                                onChange={(e) => setManualSNR(parseFloat(e.target.value))}
-                                                className="w-full h-3 rounded-lg appearance-none cursor-pointer"
-                                                style={{
-                                                    background: 'linear-gradient(to right, #ef4444 0%, #f97316 25%, #eab308 50%, #22c55e 75%, #3b82f6 100%)'
-                                                }}
-                                            />
-                                        </div>
-                                        <span className={`text-lg font-bold min-w-20 ${getSNRColor(manualSNR)}`}>
-                                            {manualSNR.toFixed(1)}dB
-                                        </span>
-                                    </div>
-                                    <div className="text-xs text-gray-500 text-center">
-                                        💡 Manual SNR wyłącza adaptacyjny algorytm trudności
-                                    </div>
-                                </div>
-                            )}
-
-                            {!useManualSNR && (
-                                <div className="text-center">
-                                    <span className={`text-lg font-bold ${getSNRColor(adaptiveState.currentSNR)}`}>
-                                        Auto SNR: {adaptiveState.currentSNR.toFixed(1)}dB
-                                    </span>
-                                    <div className="text-xs text-gray-500 mt-1">
-                                        🤖 Adaptacja: {adaptiveState.correctStreak} poprawnych | {adaptiveState.reversals} odwróceń
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </header>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-                        {/* Sidebar - wybór modułów */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-white rounded-lg shadow-md p-4">
-                                <h2 className="text-lg font-semibold text-gray-800 mb-4">Moduły Terapeutyczne</h2>
-
-                                {Object.entries(modules).map(([key, module]) => (
-                                    <button
-                                        key={key}
-                                        onClick={() => setCurrentModule(key)}
-                                        className={`w-full mb-3 p-4 rounded-lg text-left transition-all ${currentModule === key
-                                                ? 'bg-blue-500 text-white shadow-lg'
-                                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100'
-                                            }`}
-                                    >
-                                        <div className="flex items-center gap-3">
-                                            {module.icon}
-                                            <div>
-                                                <div className="font-semibold">{module.name}</div>
-                                                <div className="text-xs opacity-75">{module.description}</div>
-                                            </div>
-                                        </div>
-                                    </button>
-                                ))}
-                            </div>
-
-                            {/* Kalibracja dźwięku */}
-                            <div className="bg-white rounded-lg shadow-md p-4 mt-4">
-                                <h3 className="font-semibold text-gray-800 mb-3">🔊 Kalibracja</h3>
-
-                                {!volumeCalibrated ? (
-                                    <div className="space-y-3">
-                                        <p className="text-sm text-gray-600">
-                                            Ustaw wygodny poziom głośności
-                                        </p>
-                                        <button
-                                            onClick={() => {
-                                                if ('speechSynthesis' in window) {
-                                                    const utterance = new SpeechSynthesisUtterance('To jest test dźwięku');
-                                                    utterance.lang = 'pl-PL';
-                                                    window.speechSynthesis.speak(utterance);
-                                                }
-                                            }}
-                                            className="w-full bg-green-500 text-white py-2 rounded hover:bg-green-600"
-                                        >
-                                            🔊 Test Dźwięku
-                                        </button>
-                                        <button
-                                            onClick={() => setVolumeCalibrated(true)}
-                                            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
-                                        >
-                                            ✅ Gotowe
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <div className="text-center">
-                                        <div className="text-green-600 text-2xl mb-2">✅</div>
-                                        <p className="text-sm text-gray-600">Dźwięk skalibrowany</p>
-                                        <button
-                                            onClick={() => setVolumeCalibrated(false)}
-                                            className="text-xs text-blue-500 hover:underline mt-2"
-                                        >
-                                            Ponowna kalibracja
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-
-                        {/* Główny obszar ćwiczeń */}
-                        <div className="lg:col-span-3">
-                            {!volumeCalibrated ? (
-                                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-8 text-center">
-                                    <div className="text-4xl mb-4">🎧</div>
-                                    <h3 className="text-xl font-semibold text-yellow-800 mb-2">
-                                        Najpierw skalibruj dźwięk
-                                    </h3>
-                                    <p className="text-yellow-700">
-                                        Użyj panelu po lewej stronie, aby ustawić odpowiedni poziom głośności
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="space-y-6">
-                                    {/* Panel uzasadnienia terapeutycznego */}
-                                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                                        <div className="flex items-start gap-3">
-                                            <Info />
-                                            <div>
-                                                <h4 className="font-semibold text-blue-800 mb-2">
-                                                    👩‍⚕️ Uzasadnienie: {modules[currentModule].name}
-                                                </h4>
-                                                <div className="text-sm text-blue-700 space-y-1">
-                                                    <p><strong>Cel:</strong> {modules[currentModule].therapeutic.goal}</p>
-                                                    <p><strong>Neurobiologia:</strong> {modules[currentModule].therapeutic.neurobiology}</p>
-                                                    <p><strong>Wartość kliniczna:</strong> {modules[currentModule].therapeutic.clinicalValue}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {/* 🎤 MODUŁ: MOWA W SZUMIE */}
-                                    {currentModule === 'speechInNoise' && (
-                                        <div className="space-y-6">
-                                            <div className="bg-green-50 rounded-lg p-4">
-                                                <h3 className="text-lg font-semibold text-green-800 mb-4">
-                                                    🎤 Rozumienie Mowy w Szumie
-                                                </h3>
-
-                                                {/* Wybór typu szumu */}
-                                                <div className="bg-white rounded-lg p-4 mb-4">
-                                                    <h4 className="font-semibold mb-3">🔊 Typ szumu tła:</h4>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {[
-                                                            { type: 'white', name: 'Biały Szum', desc: 'Równomierne widmo', emoji: '⚪' },
-                                                            { type: 'pink', name: 'Różowy Szum', desc: 'Naturalniejszy', emoji: '🌸' },
-                                                            { type: 'brown', name: 'Brązowy Szum', desc: 'Głębokie częstotliwości', emoji: '🟤' },
-                                                            { type: 'babble', name: 'Babble Noise', desc: 'Głosy w tle', emoji: '👥' }
-                                                        ].map(noise => (
-                                                            <button
-                                                                key={noise.type}
-                                                                onClick={() => setSpeechInNoiseState(prev => ({ ...prev, noiseType: noise.type }))}
-                                                                className={`p-3 rounded-lg text-left transition-all ${speechInNoiseState.noiseType === noise.type
-                                                                        ? 'bg-green-500 text-white shadow-lg'
-                                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-semibold text-sm">{noise.emoji} {noise.name}</div>
-                                                                <div className="text-xs opacity-75">{noise.desc}</div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-2 text-center">
-                                                        💡 Dwukanałowe audio: szum startuje natychmiast, mowa po 2s opóźnieniu
-                                                    </div>
-                                                </div>
-
-                                                {!speechInNoiseState.currentSentence ? (
-                                                    <button
-                                                        onClick={startSpeechInNoise}
-                                                        className="w-full bg-green-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-green-700"
-                                                    >
-                                                        ▶️ Start Ćwiczenia
-                                                    </button>
-                                                ) : (
-                                                    <div className="space-y-4">
-                                                        <div className="bg-white rounded-lg p-4 text-center">
-                                                            <p className="text-gray-600 mb-4">
-                                                                Wpisz usłyszane zdanie:
-                                                            </p>
-
-                                                            <input
-                                                                type="text"
-                                                                value={speechInNoiseState.userInput}
-                                                                onChange={(e) => setSpeechInNoiseState(prev => ({
-                                                                    ...prev,
-                                                                    userInput: e.target.value
-                                                                }))}
-                                                                className="w-full p-3 border border-gray-300 rounded-lg text-lg"
-                                                                placeholder="Wpisz usłyszane zdanie..."
-                                                                autoFocus
-                                                            />
-                                                        </div>
-
-                                                        <div className="flex gap-4 justify-center">
-                                                            <button
-                                                                onClick={() => playParallelChannelsTest(
-                                                                    speechInNoiseState.noiseType,
-                                                                    speechInNoiseState.currentSentence,
-                                                                    useManualSNR ? manualSNR : adaptiveState.currentSNR
-                                                                )}
-                                                                className="bg-blue-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-600"
-                                                            >
-                                                                🔄 Powtórz
-                                                            </button>
-
-                                                            <button
-                                                                onClick={checkSpeechAnswer}
-                                                                disabled={!speechInNoiseState.userInput.trim()}
-                                                                className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 disabled:bg-gray-300"
-                                                            >
-                                                                ✅ Sprawdź
-                                                            </button>
-                                                        </div>
-
-                                                        <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-                                                            <p className="text-sm text-yellow-800">
-                                                                <strong>👩‍⚕️ Dla terapeuty:</strong>
-                                                                Prawidłowe zdanie: "{speechInNoiseState.currentSentence}"
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 🔊 MODUŁ: ROZPOZNAWANIE DŹWIĘKÓW */}
-                                    {currentModule === 'soundRecognition' && (
-                                        <div className="space-y-6">
-                                            <div className="bg-purple-50 rounded-lg p-4">
-                                                <h3 className="text-lg font-semibold text-purple-800 mb-4">
-                                                    🔊 Rozpoznawanie Dźwięków Środowiskowych
-                                                </h3>
-
-                                                {/* Wybór typu szumu */}
-                                                <div className="bg-white rounded-lg p-4 mb-4">
-                                                    <h4 className="font-semibold mb-3">🔊 Typ szumu tła:</h4>
-                                                    <div className="grid grid-cols-2 gap-2">
-                                                        {[
-                                                            { type: 'white', name: 'Biały Szum', desc: 'Równomierne widmo', emoji: '⚪' },
-                                                            { type: 'pink', name: 'Różowy Szum', desc: 'Naturalniejszy', emoji: '🌸' },
-                                                            { type: 'brown', name: 'Brązowy Szum', desc: 'Głębokie częstotliwości', emoji: '🟤' },
-                                                            { type: 'babble', name: 'Babble Noise', desc: 'Głosy w tle', emoji: '👥' }
-                                                        ].map(noise => (
-                                                            <button
-                                                                key={noise.type}
-                                                                onClick={() => setSoundRecognitionState(prev => ({ ...prev, noiseType: noise.type }))}
-                                                                className={`p-3 rounded-lg text-left transition-all ${soundRecognitionState.noiseType === noise.type
-                                                                        ? 'bg-purple-500 text-white shadow-lg'
-                                                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                                                                    }`}
-                                                            >
-                                                                <div className="font-semibold text-sm">{noise.emoji} {noise.name}</div>
-                                                                <div className="text-xs opacity-75">{noise.desc}</div>
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                    <div className="text-xs text-gray-500 mt-2 text-center">
-                                                        🎧 Każdy dźwięk odtwarzany z wybranym szumem tła
-                                                    </div>
-                                                </div>
-
-                                                {soundRecognitionState.options.length === 0 ? (
-                                                    <button
-                                                        onClick={startSoundRecognition}
-                                                        className="w-full bg-purple-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-purple-700"
-                                                    >
-                                                        ▶️ Odtwórz Dźwięk
-                                                    </button>
-                                                ) : (
-                                                    <div className="space-y-4">
-                                                        <p className="text-center text-gray-600 mb-4">
-                                                            Który dźwięk usłyszałeś?
-                                                        </p>
-
-                                                        <div className="grid grid-cols-2 gap-4">
-                                                            {soundRecognitionState.options.map((sound) => (
-                                                                <button
-                                                                    key={sound.name}
-                                                                    onClick={() => {
-                                                                        const isCorrect = sound.name === soundRecognitionState.correctSound;
-                                                                        updateAdaptive(isCorrect);
-                                                                        setSoundRecognitionState(prev => ({
-                                                                            ...prev,
-                                                                            options: [],
-                                                                            correctSound: ''
-                                                                        }));
-                                                                    }}
-                                                                    className="bg-white p-4 rounded-lg border-2 border-gray-200 hover:border-purple-400 transition-colors"
-                                                                >
-                                                                    <div className="text-3xl mb-2">{sound.image}</div>
-                                                                    <div className="font-semibold">{sound.name}</div>
-                                                                </button>
-                                                            ))}
-                                                        </div>
-
-                                                        <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-                                                            <p className="text-sm text-yellow-800">
-                                                                <strong>👩‍⚕️ Dla terapeuty:</strong>
-                                                                Prawidłowa odpowiedź: "{soundRecognitionState.correctSound}"
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 👂 MODUŁ: LATERALIZACJA - ROZBUDOWANY */}
-                                    {currentModule === 'lateralization' && (
-                                        <div className="space-y-6">
-                                            <div className="bg-indigo-50 rounded-lg p-4">
-                                                <h3 className="text-lg font-semibold text-indigo-800 mb-4">
-                                                    👂 Lateralizacja i Przestrzenne Słyszenie
-                                                </h3>
-
-                                                {/* Wybór trybu */}
-                                                <div className="bg-white rounded-lg p-4 mb-4">
-                                                    <h4 className="font-semibold mb-3">Wybierz tryb ćwiczeń:</h4>
-                                                    <div className="flex gap-4">
-                                                        <button
-                                                            onClick={() => setLateralizationState(prev => ({
-                                                                ...prev,
-                                                                mode: 'simple'
-                                                            }))}
-                                                            className={`px-4 py-2 rounded-lg font-medium ${lateralizationState.mode === 'simple'
-                                                                    ? 'bg-indigo-500 text-white'
-                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                }`}
-                                                        >
-                                                            🎯 Proste Dźwięki
-                                                        </button>
-                                                        <button
-                                                            onClick={() => setLateralizationState(prev => ({
-                                                                ...prev,
-                                                                mode: 'sequence'
-                                                            }))}
-                                                            className={`px-4 py-2 rounded-lg font-medium ${lateralizationState.mode === 'sequence'
-                                                                    ? 'bg-indigo-500 text-white'
-                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                }`}
-                                                        >
-                                                            🔢 Sekwencje Cyfr
-                                                        </button>
-                                                    </div>
-                                                </div>
-
-                                                {/* Tryb prosty */}
-                                                {lateralizationState.mode === 'simple' && (
-                                                    <div className="space-y-4">
-                                                        {!lateralizationState.currentEar ? (
-                                                            <button
-                                                                onClick={startSimpleLateralization}
-                                                                className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700"
-                                                            >
-                                                                ▶️ Odtwórz Dźwięk
-                                                            </button>
-                                                        ) : (
-                                                            <div className="space-y-4">
-                                                                <p className="text-center text-gray-600">
-                                                                    Z której strony usłyszałeś dźwięk?
-                                                                </p>
-
-                                                                <div className="flex gap-4 justify-center">
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const isCorrect = lateralizationState.currentEar === 'Lewe ucho';
-                                                                            updateAdaptive(isCorrect);
-                                                                            setLateralizationState(prev => ({
-                                                                                ...prev,
-                                                                                currentEar: '',
-                                                                                panningValue: 0
-                                                                            }));
-                                                                        }}
-                                                                        className="bg-blue-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600"
-                                                                    >
-                                                                        👂 Lewe Ucho
-                                                                    </button>
-
-                                                                    <button
-                                                                        onClick={() => {
-                                                                            const isCorrect = lateralizationState.currentEar === 'Prawe ucho';
-                                                                            updateAdaptive(isCorrect);
-                                                                            setLateralizationState(prev => ({
-                                                                                ...prev,
-                                                                                currentEar: '',
-                                                                                panningValue: 0
-                                                                            }));
-                                                                        }}
-                                                                        className="bg-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-600"
-                                                                    >
-                                                                        👂 Prawe Ucho
-                                                                    </button>
-                                                                </div>
-
-                                                                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-                                                                    <p className="text-sm text-yellow-800">
-                                                                        <strong>👩‍⚕️ Dla terapeuty:</strong>
-                                                                        Prawidłowa odpowiedź: "{lateralizationState.currentEar}"
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-
-                                                {/* NOWY: Tryb sekwencji cyfr */}
-                                                {lateralizationState.mode === 'sequence' && (
-                                                    <div className="space-y-4">
-                                                        {/* Ustawienia długości */}
-                                                        <div className="bg-white rounded-lg p-4">
-                                                            <h4 className="font-semibold mb-3">⚙️ Ustawienia sekwencji:</h4>
-                                                            <div className="flex items-center gap-4">
-                                                                <span className="text-sm font-medium">Długość:</span>
-                                                                <div className="flex gap-2">
-                                                                    {[2, 3, 4, 5, 6, 7, 8].map(num => (
-                                                                        <button
-                                                                            key={num}
-                                                                            onClick={() => setLateralizationState(prev => ({
-                                                                                ...prev,
-                                                                                sequenceLength: num
-                                                                            }))}
-                                                                            className={`w-8 h-8 rounded ${lateralizationState.sequenceLength === num
-                                                                                    ? 'bg-indigo-500 text-white'
-                                                                                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                                                                                }`}
-                                                                        >
-                                                                            {num}
-                                                                        </button>
-                                                                    ))}
-                                                                </div>
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 mt-2">
-                                                                🔢 Cyfry odtwarzane alternująco: L-R-L-R... z szumem w tle
-                                                            </div>
-                                                        </div>
-
-                                                        {lateralizationState.digitSequence.length === 0 ? (
-                                                            <button
-                                                                onClick={startDigitSequence}
-                                                                className="w-full bg-indigo-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-indigo-700"
-                                                            >
-                                                                ▶️ Odtwórz Sekwencję Cyfr ({lateralizationState.sequenceLength} cyfr)
-                                                            </button>
-                                                        ) : (
-                                                            <div className="space-y-4">
-                                                                <div className="bg-white rounded-lg p-4 text-center">
-                                                                    <p className="text-gray-600 mb-4">
-                                                                        Wpisz cyfry w kolejności (L-R-L-R...):
-                                                                    </p>
-
-                                                                    <div className="mb-4">
-                                                                        <strong>Twoja sekwencja:</strong> [{lateralizationState.userDigitSequence.join(', ')}]
-                                                                    </div>
-
-                                                                    {/* Klawiatura cyfr */}
-                                                                    <div className="grid grid-cols-5 gap-2 max-w-md mx-auto mb-4">
-                                                                        {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map(digit => (
-                                                                            <button
-                                                                                key={digit}
-                                                                                onClick={() => addDigitToSequence(digit)}
-                                                                                disabled={lateralizationState.userDigitSequence.length >= lateralizationState.digitSequence.length}
-                                                                                className="bg-blue-500 text-white text-2xl py-3 px-4 rounded-lg font-bold hover:bg-blue-600 disabled:bg-gray-300"
-                                                                            >
-                                                                                {digit}
-                                                                            </button>
-                                                                        ))}
-                                                                    </div>
-                                                                </div>
-
-                                                                <div className="flex gap-4 justify-center">
-                                                                    <button
-                                                                        onClick={() => setLateralizationState(prev => ({
-                                                                            ...prev,
-                                                                            userDigitSequence: prev.userDigitSequence.slice(0, -1)
-                                                                        }))}
-                                                                        disabled={lateralizationState.userDigitSequence.length === 0}
-                                                                        className="bg-orange-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 disabled:bg-gray-300"
-                                                                    >
-                                                                        ⬅️ Cofnij
-                                                                    </button>
-
-                                                                    <button
-                                                                        onClick={checkDigitSequence}
-                                                                        disabled={lateralizationState.userDigitSequence.length !== lateralizationState.digitSequence.length}
-                                                                        className="bg-green-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-green-600 disabled:bg-gray-300"
-                                                                    >
-                                                                        ✅ Sprawdź Sekwencję
-                                                                    </button>
-                                                                </div>
-
-                                                                <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4">
-                                                                    <p className="text-sm text-yellow-800">
-                                                                        <strong>👩‍⚕️ Dla terapeuty:</strong>
-                                                                        Prawidłowa sekwencja: [{lateralizationState.digitSequence.join(', ')}]
-                                                                        <br />
-                                                                        <span className="text-xs">
-                                                                            🎧 Wzór L-R: {lateralizationState.digitSequence.map((d, i) =>
-                                                                                `${d}(${i % 2 === 0 ? 'L' : 'R'})`
-                                                                            ).join(' → ')}
-                                                                        </span>
-                                                                    </p>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </div>
-                                    )}
-
-                                    {/* 🏃 MODUŁ: AUDIO + MOTOR */}
-                                    {currentModule === 'audioMotor' && (
-                                        <div className="space-y-6">
-                                            <div className="bg-red-50 rounded-lg p-4">
-                                                <h3 className="text-lg font-semibold text-red-800 mb-4">
-                                                    🏃 Integracja Słuchu i Ruchu
-                                                </h3>
-
-                                                <button
-                                                    onClick={() => {
-                                                        const command = audioMotorState.commands[
-                                                            Math.floor(Math.random() * audioMotorState.commands.length)
-                                                        ];
-
-                                                        setAudioMotorState(prev => ({
-                                                            ...prev,
-                                                            currentCommand: command,
-                                                            parentCheck: false
-                                                        }));
-
-                                                        if ('speechSynthesis' in window) {
-                                                            const utterance = new SpeechSynthesisUtterance(command);
-                                                            utterance.lang = 'pl-PL';
-                                                            utterance.rate = 0.8;
-                                                            window.speechSynthesis.speak(utterance);
-                                                        }
-                                                    }}
-                                                    className="w-full bg-red-600 text-white px-6 py-4 rounded-lg text-lg font-semibold hover:bg-red-700"
-                                                >
-                                                    ▶️ Odtwórz Polecenie Ruchowe
-                                                </button>
-                                            </div>
-
-                                            {audioMotorState.currentCommand && (
-                                                <div className="bg-gray-50 rounded-lg p-6">
-                                                    <div className="text-center mb-6">
-                                                        <h4 className="text-2xl font-bold text-gray-800 mb-2">
-                                                            {audioMotorState.currentCommand}
-                                                        </h4>
-                                                        <p className="text-gray-600">Dziecko powinno wykonać to polecenie</p>
-                                                    </div>
-
-                                                    <div className="bg-yellow-100 border border-yellow-300 rounded-lg p-4 mb-4">
-                                                        <p className="text-sm text-yellow-800">
-                                                            <strong>👩‍⚕️ Dla terapeuty:</strong>
-                                                            Oceń wykonanie ruchu przez dziecko. Zwróć uwagę na: szybkość reakcji, precyzję ruchu, zrozumienie polecenia.
-                                                        </p>
-                                                    </div>
-
-                                                    <div className="flex gap-4 justify-center">
-                                                        <button
-                                                            onClick={() => {
-                                                                updateAdaptive(true);
-                                                                setAudioMotorState(prev => ({
-                                                                    ...prev,
-                                                                    currentCommand: '',
-                                                                    parentCheck: false
-                                                                }));
-                                                            }}
-                                                            className="bg-green-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-green-600"
-                                                        >
-                                                            ✅ Wykonał Poprawnie
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => {
-                                                                updateAdaptive(false);
-                                                                setAudioMotorState(prev => ({
-                                                                    ...prev,
-                                                                    currentCommand: '',
-                                                                    parentCheck: false
-                                                                }));
-                                                            }}
-                                                            className="bg-red-500 text-white px-8 py-3 rounded-lg font-semibold hover:bg-red-600"
-                                                        >
-                                                            ❌ Nie Wykonał / Błędnie
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    {/* Panel terapeuty */}
-                    {showParentPanel && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                            <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-96 overflow-y-auto">
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-xl font-bold text-gray-800">
-                                        📊 Panel Terapeuty
-                                    </h3>
-                                    <button
-                                        onClick={() => setShowParentPanel(false)}
-                                        className="text-gray-500 hover:text-gray-700"
-                                    >
-                                        ❌
-                                    </button>
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4 mb-6">
-                                    <div className="bg-blue-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold text-blue-800">Czas sesji</h4>
-                                        <p className="text-2xl font-bold text-blue-600">{formatTime(sessionTime)}</p>
-                                    </div>
-
-                                    <div className="bg-green-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold text-green-800">Aktualny SNR</h4>
-                                        <p className={`text-2xl font-bold ${getSNRColor(useManualSNR ? manualSNR : adaptiveState.currentSNR)}`}>
-                                            {(useManualSNR ? manualSNR : adaptiveState.currentSNR).toFixed(1)}dB
-                                        </p>
-                                    </div>
-
-                                    <div className="bg-purple-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold text-purple-800">Seria poprawnych</h4>
-                                        <p className="text-2xl font-bold text-purple-600">{adaptiveState.correctStreak}</p>
-                                    </div>
-
-                                    <div className="bg-orange-50 p-4 rounded-lg">
-                                        <h4 className="font-semibold text-orange-800">Zmęczenie</h4>
-                                        <p className="text-2xl font-bold text-orange-600">{fatigueLevel.toFixed(0)}%</p>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                                    <h4 className="font-semibold text-gray-800 mb-2">📈 Historia SNR</h4>
-                                    <div className="text-sm text-gray-600">
-                                        {adaptiveState.history.length > 0 ? (
-                                            <p>Ostatnie 10 wartości: {adaptiveState.history.slice(-10).map(snr => snr.toFixed(1)).join(', ')}dB</p>
-                                        ) : (
-                                            <p>Brak danych historycznych</p>
-                                        )}
-                                    </div>
-                                </div>
-
-                                <div className="bg-blue-50 p-4 rounded-lg mb-4">
-                                    <h4 className="font-semibold text-blue-800 mb-2">🔊 System Szumów</h4>
-                                    <div className="text-sm text-blue-700">
-                                        <p><strong>Aktywny typ szumu:</strong> {speechInNoiseState.noiseType} (mowa) | {soundRecognitionState.noiseType} (dźwięki)</p>
-                                        <p><strong>Kanały audio:</strong> Dwukanałowe stereo z kontrolą SNR</p>
-                                        <p><strong>Timing:</strong> Szum natychmiast → Mowa po 2s opóźnieniu</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-4 flex gap-2">
-                                    <button
-                                        onClick={() => {
-                                            const report = {
-                                                sessionTime: formatTime(sessionTime),
-                                                currentSNR: useManualSNR ? manualSNR : adaptiveState.currentSNR,
-                                                correctStreak: adaptiveState.correctStreak,
-                                                reversals: adaptiveState.reversals,
-                                                history: adaptiveState.history,
-                                                module: currentModule,
-                                                noiseTypes: {
-                                                    speech: speechInNoiseState.noiseType,
-                                                    sounds: soundRecognitionState.noiseType
-                                                },
-                                                timestamp: new Date().toLocaleString('pl-PL')
-                                            };
-
-                                            const blob = new Blob([JSON.stringify(report, null, 2)], {
-                                                type: 'application/json'
-                                            });
-                                            const url = URL.createObjectURL(blob);
-                                            const a = document.createElement('a');
-                                            a.href = url;
-                                            a.download = `raport-apd-${new Date().toISOString().split('T')[0]}.json`;
-                                            a.click();
-                                        }}
-                                        className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 flex items-center gap-2"
-                                    >
-                                        <Download />
-                                        Eksport Raportu
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Przycisk przerwy */}
-                    {fatigueLevel > 80 && (
-                        <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg">
-                            <p className="font-semibold">⚠️ Czas na przerwę!</p>
-                            <button
-                                onClick={() => setFatigueLevel(0)}
-                                className="bg-white text-red-500 px-3 py-1 rounded mt-2 text-sm"
-                            >
-                                Zrób przerwę
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Skrypt informujący o konieczności przerwy */}
-                    {fatigueLevel > 80 && (
-                        <div className="fixed bottom-24 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-40">
-                            <p className="font-semibold">⚠️ Czas na przerwę!</p>
-                            <button
-                                onClick={() => setFatigueLevel(0)}
-                                className="bg-white text-red-500 px-3 py-1 rounded mt-2 text-sm font-medium hover:bg-gray-100 transition-colors"
-                            >
-                                Zrób przerwę
-                            </button>
-                        </div>
-                    )}
-
-                    {currentView === 'home' && <SEOContent />}
-                </main>
-            )}
-
-            <Footer setCurrentView={setCurrentView} />
-            <CookiesBanner />
-        </div>
+  }, []);
+
+  const effectiveSNR = useManualSNR ? manualSNR : adaptiveState.currentSNR;
+
+  const playParallelChannelsTest = useCallback(async (noiseType, speechText, snr = 10) => {
+    await unlockAudio();
+    stopAllAudio();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    const noiseLevel = relativeNoiseGain(snr, 0.5);
+    playNoise(ctx, noiseType, 10, noiseLevel);
+
+    const speechDelay = 2000 + Math.random() * 500;
+    setTimeout(() => {
+      speakText(speechText, { rate: 0.8, volume: 0.75 });
+    }, speechDelay);
+  }, []);
+
+  const playSoundWithNoise = useCallback(async (soundText, noiseType, snr = 15) => {
+    await unlockAudio();
+    stopAllAudio();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+
+    playNoise(ctx, noiseType, 8, relativeNoiseGain(snr, 0.4));
+    setTimeout(() => {
+      speakText(soundText, { rate: 0.7, volume: 0.8 });
+    }, 1500);
+  }, []);
+
+  const playWithPanning = useCallback(async (frequency, pan = 0, duration = 1000) => {
+    await unlockAudio();
+    const ctx = getAudioContext();
+    if (!ctx) return;
+    playTone(ctx, frequency, pan, duration);
+  }, []);
+
+  const startSpeechInNoise = useCallback(async () => {
+    await unlockAudio();
+    const sentence = SENTENCES[Math.floor(Math.random() * SENTENCES.length)];
+    const words = sentence.toLowerCase().split(' ');
+    setSpeechInNoiseState((prev) => ({
+      ...prev,
+      currentSentence: sentence,
+      sentenceWords: words,
+      userInput: '',
+    }));
+    playParallelChannelsTest(speechInNoiseState.noiseType, sentence, effectiveSNR);
+  }, [playParallelChannelsTest, speechInNoiseState.noiseType, effectiveSNR]);
+
+  const checkSpeechAnswer = useCallback(() => {
+    const { isCorrect } = scoreSpeechAnswer(
+      speechInNoiseState.userInput,
+      speechInNoiseState.sentenceWords
     );
+    updateAdaptive(isCorrect);
+    applyTrialResult(isCorrect, 'speechInNoise');
+    setSpeechInNoiseState((prev) => ({
+      ...prev,
+      currentSentence: '',
+      sentenceWords: [],
+      userInput: '',
+    }));
+  }, [speechInNoiseState, updateAdaptive, applyTrialResult]);
+
+  const startSoundRecognition = useCallback(async () => {
+    await unlockAudio();
+    const correctIndex = Math.floor(Math.random() * SOUNDS_LIBRARY.length);
+    const correct = SOUNDS_LIBRARY[correctIndex];
+    const shuffled = [...SOUNDS_LIBRARY].sort(() => Math.random() - 0.5).slice(0, 4);
+    if (!shuffled.find((s) => s.name === correct.name)) {
+      shuffled[0] = correct;
+    }
+    setSoundRecognitionState((prev) => ({
+      ...prev,
+      options: shuffled,
+      correctSound: correct.name,
+    }));
+    playSoundWithNoise(correct.sound, soundRecognitionState.noiseType, effectiveSNR);
+  }, [playSoundWithNoise, soundRecognitionState.noiseType, effectiveSNR]);
+
+  const startSimpleLateralization = useCallback(async () => {
+    await unlockAudio();
+    stopAllAudio();
+    const ears = ['Lewe ucho', 'Prawe ucho'];
+    const selectedEar = ears[Math.floor(Math.random() * ears.length)];
+    const pan = selectedEar === 'Lewe ucho' ? -1 : 1;
+    setLateralizationState((prev) => ({
+      ...prev,
+      currentEar: selectedEar,
+      panningValue: pan,
+    }));
+    playWithPanning(800, pan, 1000);
+  }, [playWithPanning]);
+
+  const playDigitSequenceWithPanning = useCallback(
+    async (sequence, onComplete) => {
+      await unlockAudio();
+      stopAllAudio();
+      digitTimersRef.current.forEach(clearTimeout);
+      digitTimersRef.current = [];
+
+      const ctx = getAudioContext();
+      if (!ctx) return;
+
+      playNoise(ctx, 'white', sequence.length * 2, 0.18);
+
+      sequence.forEach((digit, index) => {
+        const t = setTimeout(() => {
+          const pan = index % 2 === 0 ? -1 : 1;
+          playTone(ctx, 400 + digit * 50, pan, 200);
+          const t2 = setTimeout(() => {
+            speakText(String(digit), { rate: 0.6, volume: 0.9 });
+          }, 300);
+          digitTimersRef.current.push(t2);
+          if (index === sequence.length - 1) {
+            const t3 = setTimeout(onComplete, 2000);
+            digitTimersRef.current.push(t3);
+          }
+        }, index * 1500);
+        digitTimersRef.current.push(t);
+      });
+    },
+    []
+  );
+
+  const startDigitSequence = useCallback(async () => {
+    const length = lateralizationState.sequenceLength;
+    const sequence = Array.from({ length }, () => Math.floor(Math.random() * 10));
+    setLateralizationState((prev) => ({
+      ...prev,
+      mode: 'sequence',
+      digitSequence: sequence,
+      userDigitSequence: [],
+    }));
+    playDigitSequenceWithPanning(sequence, () => {});
+  }, [lateralizationState.sequenceLength, playDigitSequenceWithPanning]);
+
+  const checkDigitSequence = useCallback(() => {
+    const isCorrect =
+      JSON.stringify(lateralizationState.digitSequence) ===
+      JSON.stringify(lateralizationState.userDigitSequence);
+    updateAdaptive(isCorrect);
+    applyTrialResult(isCorrect, 'lateralization');
+    setLateralizationState((prev) => ({
+      ...prev,
+      digitSequence: [],
+      userDigitSequence: [],
+    }));
+  }, [lateralizationState, updateAdaptive, applyTrialResult]);
+
+  const addDigitToSequence = useCallback((digit) => {
+    setLateralizationState((prev) => ({
+      ...prev,
+      userDigitSequence: [...prev.userDigitSequence, digit],
+    }));
+  }, []);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const getSNRColor = (snr) => {
+    if (snr < -10) return 'text-red-600';
+    if (snr < 0) return 'text-orange-600';
+    if (snr < 10) return 'text-yellow-700';
+    if (snr < 20) return 'text-green-700';
+    return 'text-sky-700';
+  };
+
+  const modules = Object.fromEntries(
+    Object.entries(MODULE_META).map(([key, meta]) => [
+      key,
+      {
+        ...meta,
+        icon: MODULE_ICONS[key],
+        shortName: MODULE_SHORT[key],
+      },
+    ])
+  );
+
+  const selectModule = async (key) => {
+    await unlockAudio();
+    stopAllAudio();
+    setCurrentModule(key);
+  };
+
+  const primaryBtn =
+    'w-full min-h-[52px] px-5 py-3.5 rounded-xl text-base font-semibold touch-manipulation active:scale-[0.98] transition';
+  const secondaryBtn =
+    'min-h-[48px] px-5 py-3 rounded-xl font-semibold touch-manipulation active:scale-[0.98] transition';
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-slate-50 to-teal-50 flex flex-col pt-14 md:pt-16 pb-24 md:pb-8">
+      <Navbar currentView={currentView} setCurrentView={setCurrentView} />
+
+      {currentView === 'privacy' ? (
+        <main className="flex-grow">
+          <PrivacyPolicy />
+        </main>
+      ) : (
+        <main id="aplikacja" className="flex-grow max-w-7xl mx-auto w-full px-3 sm:px-4 md:px-6 lg:px-8">
+          <header className="bg-white/90 backdrop-blur rounded-2xl shadow-sm border border-slate-100 p-4 sm:p-6 mb-4 sm:mb-6 mt-3 sm:mt-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+                <div className="text-center sm:text-left">
+                  <h1 className="text-2xl sm:text-3xl font-bold text-slate-800 tracking-tight">
+                    Trening APD
+                  </h1>
+                  <p className="text-slate-600 mt-1 text-sm sm:text-base">
+                    Ćwiczenia wspomagające przetwarzanie słuchowe (nie diagnostyka)
+                  </p>
+                </div>
+                <div className="flex items-center justify-center sm:justify-end gap-2 flex-wrap">
+                  <div className="text-center px-3 py-2 rounded-xl bg-slate-50 min-h-[44px] flex flex-col justify-center">
+                    <div className="flex items-center justify-center gap-1.5 text-slate-700 text-sm font-medium">
+                      <Icon.Timer />
+                      <span className="tabular-nums">{formatTime(sessionTime)}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-500">Czas sesji</div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowParentPanel(true)}
+                    className={`${secondaryBtn} bg-slate-800 text-white px-4 flex items-center gap-2`}
+                  >
+                    <Icon.Chart />
+                    <span className="text-sm">Panel</span>
+                  </button>
+                </div>
+              </div>
+
+              <RewardsBar rewards={rewards} />
+
+              <div className="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-100">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
+                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base">
+                    Poziom szumu (względny)
+                  </h3>
+                  <div className="flex items-center justify-center gap-3">
+                    <span className="text-xs font-medium text-slate-600">AUTO</span>
+                    <label className="relative inline-flex items-center cursor-pointer min-h-[44px] min-w-[44px] justify-center">
+                      <input
+                        type="checkbox"
+                        checked={useManualSNR}
+                        onChange={(e) => setUseManualSNR(e.target.checked)}
+                        className="sr-only peer"
+                        aria-label="Przełącz tryb ręczny poziomu szumu"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[11px] after:left-[6px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600" />
+                    </label>
+                    <span className="text-xs font-medium text-slate-600">RĘCZNY</span>
+                  </div>
+                </div>
+
+                {useManualSNR ? (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="range"
+                        min="-20"
+                        max="30"
+                        step="0.5"
+                        value={manualSNR}
+                        onChange={(e) => setManualSNR(parseFloat(e.target.value))}
+                        className="flex-1 h-3 accent-teal-600 cursor-pointer"
+                        aria-valuemin={-20}
+                        aria-valuemax={30}
+                        aria-valuenow={manualSNR}
+                        aria-label="Poziom szumu"
+                      />
+                      <span className={`text-base font-bold min-w-[4.5rem] tabular-nums ${getSNRColor(manualSNR)}`}>
+                        {manualSNR.toFixed(1)} dB*
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 text-center">
+                      *Względny poziom szumu względem syntezy mowy — nie kalibrowany SNR kliniczny.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="text-center">
+                    <span className={`text-lg font-bold tabular-nums ${getSNRColor(adaptiveState.currentSNR)}`}>
+                      Auto: {adaptiveState.currentSNR.toFixed(1)} dB*
+                    </span>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Adaptacja: {adaptiveState.correctStreak} poprawnych z rzędu · {adaptiveState.reversals} odwróceń
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </header>
+
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 sm:gap-6">
+            <aside className="hidden md:block lg:col-span-1 space-y-4">
+              <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+                <h2 className="text-lg font-semibold text-slate-800 mb-3">Moduły</h2>
+                {Object.entries(modules).map(([key, module]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => selectModule(key)}
+                    className={`w-full mb-2 p-4 rounded-xl text-left transition touch-manipulation min-h-[56px] ${
+                      currentModule === key
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {module.icon}
+                      <div>
+                        <div className="font-semibold text-sm">{module.name}</div>
+                        <div className="text-xs opacity-80">{module.description}</div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              <CalibrationPanel
+                volumeCalibrated={volumeCalibrated}
+                setVolumeCalibrated={setVolumeCalibrated}
+              />
+            </aside>
+
+            <div className="lg:col-span-3 space-y-4">
+              <div className="md:hidden">
+                <CalibrationPanel
+                  volumeCalibrated={volumeCalibrated}
+                  setVolumeCalibrated={setVolumeCalibrated}
+                  compact
+                />
+              </div>
+
+              {!volumeCalibrated ? (
+                <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 sm:p-8 text-center">
+                  <div className="text-4xl mb-3" aria-hidden>
+                    🎧
+                  </div>
+                  <h3 className="text-xl font-semibold text-amber-900 mb-2">Najpierw kalibracja</h3>
+                  <p className="text-amber-800 text-sm sm:text-base">
+                    Załóż słuchawki stereo, odtwórz test i ustaw wygodną głośność urządzenia. Potem
+                    potwierdź „Gotowe”.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-sky-50 border border-sky-100 rounded-2xl p-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-sky-700 mt-0.5">
+                        <Icon.Info />
+                      </span>
+                      <div className="text-sm text-sky-900 space-y-1">
+                        <h4 className="font-semibold">{modules[currentModule].name}</h4>
+                        <p>
+                          <strong>Cel:</strong> {modules[currentModule].therapeutic.goal}
+                        </p>
+                        <p>
+                          <strong>Jak ćwiczyć:</strong> {modules[currentModule].therapeutic.focus}
+                        </p>
+                        <p className="text-sky-800/90 text-xs sm:text-sm">
+                          {modules[currentModule].therapeutic.note}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {currentModule === 'speechInNoise' && (
+                    <section className="bg-emerald-50/80 rounded-2xl p-4 sm:p-5 border border-emerald-100">
+                      <h3 className="text-lg font-semibold text-emerald-900 mb-3">Mowa w szumie</h3>
+                      <NoisePicker
+                        value={speechInNoiseState.noiseType}
+                        onChange={(type) =>
+                          setSpeechInNoiseState((prev) => ({ ...prev, noiseType: type }))
+                        }
+                        accent="emerald"
+                      />
+                      {!speechInNoiseState.currentSentence ? (
+                        <button
+                          type="button"
+                          onClick={startSpeechInNoise}
+                          className={`${primaryBtn} bg-emerald-600 text-white hover:bg-emerald-700`}
+                        >
+                          Start ćwiczenia
+                        </button>
+                      ) : (
+                        <div className="space-y-4 mt-2">
+                          <label className="block">
+                            <span className="text-sm text-slate-600 mb-2 block">
+                              Wpisz usłyszane zdanie
+                            </span>
+                            <input
+                              type="text"
+                              value={speechInNoiseState.userInput}
+                              onChange={(e) =>
+                                setSpeechInNoiseState((prev) => ({
+                                  ...prev,
+                                  userInput: e.target.value,
+                                }))
+                              }
+                              enterKeyHint="done"
+                              className="w-full min-h-[52px] p-3 border border-slate-300 rounded-xl text-base bg-white"
+                              placeholder="Usłyszane zdanie…"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                            />
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                playParallelChannelsTest(
+                                  speechInNoiseState.noiseType,
+                                  speechInNoiseState.currentSentence,
+                                  effectiveSNR
+                                )
+                              }
+                              className={`${secondaryBtn} flex-1 bg-sky-600 text-white`}
+                            >
+                              Powtórz
+                            </button>
+                            <button
+                              type="button"
+                              onClick={checkSpeechAnswer}
+                              disabled={!speechInNoiseState.userInput.trim()}
+                              className={`${secondaryBtn} flex-1 bg-emerald-600 text-white disabled:bg-slate-300`}
+                            >
+                              Sprawdź
+                            </button>
+                          </div>
+                          <TherapistHint>
+                            Prawidłowe zdanie: „{speechInNoiseState.currentSentence}”
+                          </TherapistHint>
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                  {currentModule === 'soundRecognition' && (
+                    <section className="bg-violet-50/80 rounded-2xl p-4 sm:p-5 border border-violet-100">
+                      <h3 className="text-lg font-semibold text-violet-900 mb-3">
+                        Rozpoznawanie dźwięków
+                      </h3>
+                      <NoisePicker
+                        value={soundRecognitionState.noiseType}
+                        onChange={(type) =>
+                          setSoundRecognitionState((prev) => ({ ...prev, noiseType: type }))
+                        }
+                        accent="violet"
+                      />
+                      {soundRecognitionState.options.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={startSoundRecognition}
+                          className={`${primaryBtn} bg-violet-600 text-white hover:bg-violet-700`}
+                        >
+                          Odtwórz dźwięk
+                        </button>
+                      ) : (
+                        <div className="space-y-4">
+                          <p className="text-center text-slate-600">Który dźwięk usłyszałeś?</p>
+                          <div className="grid grid-cols-2 gap-3">
+                            {soundRecognitionState.options.map((sound) => (
+                              <button
+                                key={sound.name}
+                                type="button"
+                                onClick={() => {
+                                  const isCorrect =
+                                    sound.name === soundRecognitionState.correctSound;
+                                  updateAdaptive(isCorrect);
+                                  applyTrialResult(isCorrect, 'soundRecognition');
+                                  setSoundRecognitionState((prev) => ({
+                                    ...prev,
+                                    options: [],
+                                    correctSound: '',
+                                  }));
+                                }}
+                                className="bg-white p-4 rounded-xl border-2 border-slate-200 min-h-[88px] touch-manipulation active:border-violet-400"
+                              >
+                                <div className="text-3xl mb-1" aria-hidden>
+                                  {sound.image}
+                                </div>
+                                <div className="font-semibold text-sm">{sound.name}</div>
+                              </button>
+                            ))}
+                          </div>
+                          <TherapistHint>
+                            Prawidłowa odpowiedź: „{soundRecognitionState.correctSound}”
+                          </TherapistHint>
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                  {currentModule === 'lateralization' && (
+                    <section className="bg-indigo-50/80 rounded-2xl p-4 sm:p-5 border border-indigo-100">
+                      <h3 className="text-lg font-semibold text-indigo-900 mb-2">Lateralizacja</h3>
+                      <p className="text-xs text-indigo-800 mb-3">
+                        Wymagane słuchawki stereo. Na głośniku telefonu L/P nie działa poprawnie.
+                      </p>
+                      <div className="bg-white rounded-xl p-3 mb-4">
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'simple', label: 'Proste L/P' },
+                            { id: 'sequence', label: 'Sekwencje cyfr' },
+                          ].map((mode) => (
+                            <button
+                              key={mode.id}
+                              type="button"
+                              onClick={() =>
+                                setLateralizationState((prev) => ({ ...prev, mode: mode.id }))
+                              }
+                              className={`min-h-[48px] rounded-xl font-medium touch-manipulation ${
+                                lateralizationState.mode === mode.id
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'bg-slate-100 text-slate-700'
+                              }`}
+                            >
+                              {mode.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {lateralizationState.mode === 'simple' && (
+                        <div className="space-y-4">
+                          {!lateralizationState.currentEar ? (
+                            <button
+                              type="button"
+                              onClick={startSimpleLateralization}
+                              className={`${primaryBtn} bg-indigo-600 text-white`}
+                            >
+                              Odtwórz dźwięk
+                            </button>
+                          ) : (
+                            <div className="space-y-4">
+                              <p className="text-center text-slate-600">Z której strony?</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                {[
+                                  { ear: 'Lewe ucho', label: 'Lewe', color: 'bg-sky-600' },
+                                  { ear: 'Prawe ucho', label: 'Prawe', color: 'bg-rose-600' },
+                                ].map((opt) => (
+                                  <button
+                                    key={opt.ear}
+                                    type="button"
+                                    onClick={() => {
+                                      const isCorrect = lateralizationState.currentEar === opt.ear;
+                                      updateAdaptive(isCorrect);
+                                      applyTrialResult(isCorrect, 'lateralization');
+                                      setLateralizationState((prev) => ({
+                                        ...prev,
+                                        currentEar: '',
+                                        panningValue: 0,
+                                      }));
+                                    }}
+                                    className={`${opt.color} text-white min-h-[64px] rounded-xl font-semibold text-lg touch-manipulation`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                ))}
+                              </div>
+                              <TherapistHint>
+                                Prawidłowa odpowiedź: {lateralizationState.currentEar}
+                              </TherapistHint>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {lateralizationState.mode === 'sequence' && (
+                        <div className="space-y-4">
+                          <div className="bg-white rounded-xl p-3">
+                            <p className="text-sm font-medium mb-2">Długość sekwencji</p>
+                            <div className="flex flex-wrap gap-2">
+                              {[2, 3, 4, 5, 6, 7, 8].map((num) => (
+                                <button
+                                  key={num}
+                                  type="button"
+                                  onClick={() =>
+                                    setLateralizationState((prev) => ({
+                                      ...prev,
+                                      sequenceLength: num,
+                                    }))
+                                  }
+                                  className={`min-w-[44px] min-h-[44px] rounded-lg font-semibold touch-manipulation ${
+                                    lateralizationState.sequenceLength === num
+                                      ? 'bg-indigo-600 text-white'
+                                      : 'bg-slate-100 text-slate-700'
+                                  }`}
+                                >
+                                  {num}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {lateralizationState.digitSequence.length === 0 ? (
+                            <button
+                              type="button"
+                              onClick={startDigitSequence}
+                              className={`${primaryBtn} bg-indigo-600 text-white`}
+                            >
+                              Odtwórz sekwencję ({lateralizationState.sequenceLength})
+                            </button>
+                          ) : (
+                            <div className="space-y-4">
+                              <p className="text-center text-slate-600 text-sm">
+                                Wpisz cyfry w kolejności (L–P–L–P…)
+                              </p>
+                              <p className="text-center font-mono text-lg">
+                                [{lateralizationState.userDigitSequence.join(', ')}]
+                              </p>
+                              <div className="grid grid-cols-5 gap-2 max-w-sm mx-auto">
+                                {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((digit) => (
+                                  <button
+                                    key={digit}
+                                    type="button"
+                                    onClick={() => addDigitToSequence(digit)}
+                                    disabled={
+                                      lateralizationState.userDigitSequence.length >=
+                                      lateralizationState.digitSequence.length
+                                    }
+                                    className="bg-indigo-600 text-white text-xl min-h-[52px] rounded-xl font-bold touch-manipulation disabled:bg-slate-300"
+                                  >
+                                    {digit}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setLateralizationState((prev) => ({
+                                      ...prev,
+                                      userDigitSequence: prev.userDigitSequence.slice(0, -1),
+                                    }))
+                                  }
+                                  disabled={lateralizationState.userDigitSequence.length === 0}
+                                  className={`${secondaryBtn} flex-1 bg-amber-500 text-white disabled:bg-slate-300`}
+                                >
+                                  Cofnij
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={checkDigitSequence}
+                                  disabled={
+                                    lateralizationState.userDigitSequence.length !==
+                                    lateralizationState.digitSequence.length
+                                  }
+                                  className={`${secondaryBtn} flex-1 bg-emerald-600 text-white disabled:bg-slate-300`}
+                                >
+                                  Sprawdź
+                                </button>
+                              </div>
+                              <TherapistHint>
+                                Sekwencja: [{lateralizationState.digitSequence.join(', ')}]
+                                <br />
+                                <span className="text-xs">
+                                  Wzór L/P:{' '}
+                                  {lateralizationState.digitSequence
+                                    .map((d, i) => `${d}(${i % 2 === 0 ? 'L' : 'P'})`)
+                                    .join(' → ')}
+                                </span>
+                              </TherapistHint>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </section>
+                  )}
+
+                  {currentModule === 'audioMotor' && (
+                    <section className="bg-rose-50/80 rounded-2xl p-4 sm:p-5 border border-rose-100">
+                      <h3 className="text-lg font-semibold text-rose-900 mb-3">Audio–motor</h3>
+                      <label className="flex items-center gap-3 mb-4 min-h-[48px] text-sm text-slate-700">
+                        <input
+                          type="checkbox"
+                          checked={hideMotorText}
+                          onChange={(e) => setHideMotorText(e.target.checked)}
+                          className="w-5 h-5 accent-rose-600"
+                        />
+                        Ukryj tekst polecenia (tylko słuch)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await unlockAudio();
+                          stopAllAudio();
+                          const command =
+                            AUDIO_MOTOR_COMMANDS[
+                              Math.floor(Math.random() * AUDIO_MOTOR_COMMANDS.length)
+                            ];
+                          setAudioMotorState({ currentCommand: command });
+                          speakText(command, { rate: 0.8 });
+                        }}
+                        className={`${primaryBtn} bg-rose-600 text-white`}
+                      >
+                        Odtwórz polecenie ruchowe
+                      </button>
+
+                      {audioMotorState.currentCommand && (
+                        <div className="mt-4 bg-white rounded-xl p-5 space-y-4">
+                          {!hideMotorText && (
+                            <h4 className="text-xl sm:text-2xl font-bold text-center text-slate-800">
+                              {audioMotorState.currentCommand}
+                            </h4>
+                          )}
+                          {hideMotorText && (
+                            <p className="text-center text-slate-500 text-sm">
+                              Polecenie odtworzone — wykonaj ruch ze słuchu.
+                            </p>
+                          )}
+                          <TherapistHint label="Wskazówki dla oceniającego">
+                            Oceń szybkość reakcji, precyzję i zrozumienie. Polecenie:{' '}
+                            {audioMotorState.currentCommand}
+                          </TherapistHint>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAdaptive(true);
+                                applyTrialResult(true, 'audioMotor');
+                                setAudioMotorState({ currentCommand: '' });
+                              }}
+                              className={`${secondaryBtn} flex-1 bg-emerald-600 text-white`}
+                            >
+                              Wykonał poprawnie
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                updateAdaptive(false);
+                                applyTrialResult(false, 'audioMotor');
+                                setAudioMotorState({ currentCommand: '' });
+                              }}
+                              className={`${secondaryBtn} flex-1 bg-rose-600 text-white`}
+                            >
+                              Błędnie / nie wykonał
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </section>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {showParentPanel && (
+            <div
+              className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center p-0 sm:p-4 z-50"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="therapist-panel-title"
+              onClick={(e) => {
+                if (e.target === e.currentTarget) setShowParentPanel(false);
+              }}
+            >
+              <div className="bg-white rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 max-w-2xl w-full max-h-[85vh] overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h3 id="therapist-panel-title" className="text-xl font-bold text-slate-800">
+                    Panel terapeuty / rodzica
+                  </h3>
+                  <button
+                    type="button"
+                    onClick={() => setShowParentPanel(false)}
+                    className="min-h-[44px] min-w-[44px] rounded-lg text-slate-500 touch-manipulation"
+                    aria-label="Zamknij panel"
+                  >
+                    ✕
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  <StatCard title="Czas sesji" value={formatTime(sessionTime)} tone="sky" />
+                  <StatCard
+                    title="Poziom szumu"
+                    value={`${effectiveSNR.toFixed(1)} dB*`}
+                    tone="emerald"
+                  />
+                  <StatCard title="Seria poprawnych" value={adaptiveState.correctStreak} tone="violet" />
+                  <StatCard title="Punkty (łącznie)" value={rewards.points} tone="amber" />
+                </div>
+
+                <div className="bg-slate-50 p-3 rounded-xl mb-3 text-sm text-slate-600">
+                  Historia poziomu:{' '}
+                  {adaptiveState.history.length
+                    ? adaptiveState.history.slice(-10).map((s) => s.toFixed(1)).join(', ')
+                    : 'brak'}
+                </div>
+
+                <p className="text-xs text-slate-500 mb-4">
+                  Wyniki zapisują się lokalnie w przeglądarce. Aplikacja nie stawia diagnozy APD.
+                </p>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const report = {
+                      sessionTime: formatTime(sessionTime),
+                      relativeNoiseLevel: effectiveSNR,
+                      correctStreak: adaptiveState.correctStreak,
+                      reversals: adaptiveState.reversals,
+                      history: adaptiveState.history,
+                      rewards: {
+                        points: rewards.points,
+                        streak: rewards.currentStreak,
+                        badges: rewards.badges,
+                      },
+                      module: currentModule,
+                      timestamp: new Date().toLocaleString('pl-PL'),
+                      disclaimer:
+                        'Względny poziom szumu — nie kalibrowany SNR kliniczny. Trening wspomagający, nie diagnostyka.',
+                    };
+                    const blob = new Blob([JSON.stringify(report, null, 2)], {
+                      type: 'application/json',
+                    });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `raport-apd-${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                  }}
+                  className={`${secondaryBtn} bg-sky-600 text-white inline-flex items-center gap-2`}
+                >
+                  <Icon.Download />
+                  Eksport raportu
+                </button>
+              </div>
+            </div>
+          )}
+
+          {fatigueLevel > 80 && (
+            <div className="fixed bottom-24 md:bottom-6 left-4 right-4 md:left-auto md:right-4 md:w-72 z-40 bg-rose-600 text-white p-4 rounded-2xl shadow-lg">
+              <p className="font-semibold">Czas na krótką przerwę</p>
+              <p className="text-sm text-rose-100 mt-1">Lepsze krótkie sesje niż zmęczenie.</p>
+              <button
+                type="button"
+                onClick={() => setFatigueLevel(0)}
+                className="bg-white text-rose-700 min-h-[44px] px-4 rounded-xl mt-3 text-sm font-medium w-full touch-manipulation"
+              >
+                Zrób przerwę
+              </button>
+            </div>
+          )}
+
+          {currentView === 'home' && <SEOContent />}
+        </main>
+      )}
+
+      <Footer setCurrentView={setCurrentView} />
+      <CookiesBanner />
+
+      {currentView === 'home' && (
+        <MobileModuleNav
+          modules={modules}
+          currentModule={currentModule}
+          onSelect={selectModule}
+        />
+      )}
+
+      <FeedbackBanner
+        kind={feedback.kind}
+        message={feedback.message}
+        onDone={() => setFeedback({ kind: null, message: '' })}
+      />
+      <NewBadgeToast badges={newBadges} onDismiss={() => setNewBadges([])} />
+    </div>
+  );
+}
+
+function NoisePicker({ value, onChange, accent = 'emerald' }) {
+  const active =
+    accent === 'violet'
+      ? 'bg-violet-600 text-white'
+      : accent === 'indigo'
+        ? 'bg-indigo-600 text-white'
+        : 'bg-emerald-600 text-white';
+
+  return (
+    <div className="bg-white rounded-xl p-3 mb-4">
+      <h4 className="font-semibold mb-2 text-sm text-slate-800">Typ szumu tła</h4>
+      <div className="grid grid-cols-2 gap-2">
+        {NOISE_OPTIONS.map((noise) => (
+          <button
+            key={noise.type}
+            type="button"
+            onClick={() => onChange(noise.type)}
+            className={`p-3 rounded-xl text-left min-h-[64px] touch-manipulation ${
+              value === noise.type ? active : 'bg-slate-100 text-slate-700'
+            }`}
+          >
+            <div className="font-semibold text-sm">
+              <span aria-hidden>{noise.emoji} </span>
+              {noise.name}
+            </div>
+            <div className="text-xs opacity-80">{noise.desc}</div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function CalibrationPanel({ volumeCalibrated, setVolumeCalibrated, compact = false }) {
+  return (
+    <div
+      className={`bg-white rounded-2xl shadow-sm border border-slate-100 ${
+        compact ? 'p-3 mb-2' : 'p-4'
+      }`}
+    >
+      <h3 className="font-semibold text-slate-800 mb-2 text-sm sm:text-base">Kalibracja</h3>
+      {!volumeCalibrated ? (
+        <div className={`space-y-2 ${compact ? 'flex flex-col sm:flex-row sm:items-stretch gap-2 space-y-0' : ''}`}>
+          <p className={`text-sm text-slate-600 ${compact ? 'sm:hidden' : ''}`}>
+            Słuchawki stereo · wygodna głośność
+          </p>
+          <button
+            type="button"
+            onClick={async () => {
+              await unlockAudio();
+              speakText('To jest test dźwięku. Ustaw wygodną głośność.', { rate: 0.85 });
+            }}
+            className="w-full min-h-[48px] bg-emerald-600 text-white rounded-xl font-medium touch-manipulation"
+          >
+            Test dźwięku
+          </button>
+          <button
+            type="button"
+            onClick={async () => {
+              await unlockAudio();
+              setVolumeCalibrated(true);
+            }}
+            className="w-full min-h-[48px] bg-sky-600 text-white rounded-xl font-medium touch-manipulation"
+          >
+            Gotowe
+          </button>
+        </div>
+      ) : (
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-sm text-emerald-700 font-medium">Gotowe do ćwiczeń</p>
+          <button
+            type="button"
+            onClick={() => setVolumeCalibrated(false)}
+            className="text-sm text-sky-700 min-h-[44px] px-2 touch-manipulation underline"
+          >
+            Ponów
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function StatCard({ title, value, tone }) {
+  const tones = {
+    sky: 'bg-sky-50 text-sky-800',
+    emerald: 'bg-emerald-50 text-emerald-800',
+    violet: 'bg-violet-50 text-violet-800',
+    amber: 'bg-amber-50 text-amber-900',
+  };
+  return (
+    <div className={`p-3 rounded-xl ${tones[tone] || tones.sky}`}>
+      <h4 className="text-xs font-semibold opacity-80">{title}</h4>
+      <p className="text-xl font-bold tabular-nums mt-1">{value}</p>
+    </div>
+  );
 }
 
 export default TreningAPD;
