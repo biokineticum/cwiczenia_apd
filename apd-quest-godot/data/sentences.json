@@ -1,20 +1,85 @@
 {
-  "note": "Subset SENTENCES z web exerciseData — pełną bazę zsynchronizować później.",
+  "note": "Krótkie zdania dla 5-latki. illustration + distractors = obrazki.",
   "items": [
-    "Mama gotuje obiad",
-    "Tata czyta gazetę",
-    "Kot śpi na kanapie",
-    "Pies biegnie po parku",
-    "Dziewczynka liczy do dziesięciu",
-    "Usiądź przy stole",
-    "Zamknij drzwi",
-    "Przynieś mi książkę",
-    "Babcia piecze ciasto",
-    "Dziecko rysuje kredkami",
-    "Zielona trawa jest mokra",
-    "Jutro pójdziemy do kina",
-    "Tata pije wodę",
-    "Kot łowi myszy",
-    "Gdzie jest moja zabawka?"
+    {
+      "id": "pies_park",
+      "text_pl": "Pies biegnie po parku",
+      "illustration": "park",
+      "distractors": [
+        "sleep",
+        "house",
+        "car"
+      ]
+    },
+    {
+      "id": "kot_spi",
+      "text_pl": "Kot śpi na kanapie",
+      "illustration": "sleep",
+      "distractors": [
+        "dog",
+        "park",
+        "book"
+      ]
+    },
+    {
+      "id": "dom_kwiat",
+      "text_pl": "Przed domem rośnie kwiat",
+      "illustration": "flower",
+      "distractors": [
+        "rain",
+        "car",
+        "bread"
+      ]
+    },
+    {
+      "id": "ptak_slonce",
+      "text_pl": "Ptak leci w słońcu",
+      "illustration": "bird",
+      "distractors": [
+        "cat",
+        "water",
+        "door"
+      ]
+    },
+    {
+      "id": "deszcz_woda",
+      "text_pl": "Pada deszcz",
+      "illustration": "rain",
+      "distractors": [
+        "sun",
+        "ball",
+        "milk"
+      ]
+    },
+    {
+      "id": "jablko",
+      "text_pl": "Dziecko je jabłko",
+      "illustration": "apple",
+      "distractors": [
+        "bread",
+        "ball",
+        "book"
+      ]
+    },
+    {
+      "id": "pilka",
+      "text_pl": "Piłka toczy się po trawie",
+      "illustration": "ball",
+      "distractors": [
+        "apple",
+        "car",
+        "tree"
+      ]
+    },
+    {
+      "id": "auto",
+      "text_pl": "Jedzie czerwone auto",
+      "illustration": "car",
+      "distractors": [
+        "house",
+        "dog",
+        "bird"
+      ]
+    }
   ]
 }

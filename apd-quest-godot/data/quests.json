@@ -6,13 +6,13 @@
       "npc_id": "npc_echo",
       "exercise_type": "word_sequence",
       "dialog_offer": [
-        "Cześć! Jestem Echo z Polany.",
-        "Pomóż mi zapamiętać magiczne słowa — powtórz je w tej samej kolejności.",
-        "To trening pamięci słuchowej — nie test diagnostyczny."
+        "Cześć! Jestem Echo.",
+        "Ułóż zaklęcie tak, jak usłyszysz."
       ],
       "dialog_done": [
-        "Świetnie! Zaklęcie znów działa. Dziękuję!"
+        "Udało się — zaklęcie znów świeci!"
       ],
+      "parent_blurb": "Ćwiczenie kolejności słuchowej (trening wspomagający, nie diagnostyka).",
       "noise_optional": true,
       "reward_points": 20
     },
@@ -22,13 +22,13 @@
       "npc_id": "npc_storm",
       "exercise_type": "speech_in_noise",
       "dialog_offer": [
-        "Jestem Burza. Szum wokół nas bywa głośny.",
-        "Posłuchaj wiadomości i wybierz, co usłyszałaś.",
-        "Szum możesz włączyć — to względny poziom trudności, nie kliniczny SNR."
+        "Jestem Burza.",
+        "Posłuchaj i wskaż obrazek."
       ],
       "dialog_done": [
-        "Udało się — wiadomość dotarła przez burzę!"
+        "Wiadomość dotarła — brawo!"
       ],
+      "parent_blurb": "Mowa w szumie: dziecko wskazuje ilustrację. Szum = względny poziom trudności (nie kliniczny SNR).",
       "noise_optional": true,
       "reward_points": 25
     }

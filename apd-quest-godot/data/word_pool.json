@@ -1,12 +1,83 @@
 {
-  "note": "Pula słów PL do sekwencji (subset; pełna synchronizacja z web później). Długość 3–5.",
-  "default_length_min": 3,
-  "default_length_max": 4,
+  "note": "Pula dla 5-latki: konkretne słowa + icon_id. label_pl tylko dla rodzica. Start N=2–3.",
+  "default_length_min": 2,
+  "default_length_max": 3,
+  "parent_max_length": 4,
   "words": [
-    "dom", "las", "rzeka", "most", "kwiat", "ptak", "pies", "kot",
-    "chleb", "mleko", "jabłko", "woda", "piłka", "książka", "okno",
-    "drzwi", "słońce", "deszcz", "ścieżka", "latarnia", "mostek", "łąka",
-    "szkoła", "ogród", "chmura", "wiatr", "kawałek", "koszyk", "parasol",
-    "łyżka", "talerz", "buty", "czapka", "plecak", "rower", "mostek"
+    {
+      "id": "pies",
+      "label_pl": "pies",
+      "icon": "dog"
+    },
+    {
+      "id": "kot",
+      "label_pl": "kot",
+      "icon": "cat"
+    },
+    {
+      "id": "dom",
+      "label_pl": "dom",
+      "icon": "house"
+    },
+    {
+      "id": "pilka",
+      "label_pl": "piłka",
+      "icon": "ball"
+    },
+    {
+      "id": "jablko",
+      "label_pl": "jabłko",
+      "icon": "apple"
+    },
+    {
+      "id": "chleb",
+      "label_pl": "chleb",
+      "icon": "bread"
+    },
+    {
+      "id": "mleko",
+      "label_pl": "mleko",
+      "icon": "milk"
+    },
+    {
+      "id": "ptak",
+      "label_pl": "ptak",
+      "icon": "bird"
+    },
+    {
+      "id": "kwiat",
+      "label_pl": "kwiat",
+      "icon": "flower"
+    },
+    {
+      "id": "slonce",
+      "label_pl": "słońce",
+      "icon": "sun"
+    },
+    {
+      "id": "deszcz",
+      "label_pl": "deszcz",
+      "icon": "rain"
+    },
+    {
+      "id": "drzewo",
+      "label_pl": "drzewo",
+      "icon": "tree"
+    },
+    {
+      "id": "ksiazka",
+      "label_pl": "książka",
+      "icon": "book"
+    },
+    {
+      "id": "drzwi",
+      "label_pl": "drzwi",
+      "icon": "door"
+    },
+    {
+      "id": "woda",
+      "label_pl": "woda",
+      "icon": "water"
+    }
   ]
 }

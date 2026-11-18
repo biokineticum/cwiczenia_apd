@@ -10,12 +10,13 @@ func _ready() -> void:
 	print("Polana Echo · WASD ruch · PPM+mysz kamera · E rozmowa")
 	print("NPC: Echo (sekwencje słów), Burza (mowa w szumie)")
 	print("Trening wspomagający — nie diagnostyka.")
-	if OS.get_environment("APD_QUEST_SCREENSHOT") != "":
-		auto_screenshot_path = OS.get_environment("APD_QUEST_SCREENSHOT")
+	# Auto-screenshot tylko gdy QUIT_AFTER (unikaj kolizji z playtest_capture_ui).
 	if OS.get_environment("APD_QUEST_QUIT_AFTER") != "":
 		auto_quit_after_sec = float(OS.get_environment("APD_QUEST_QUIT_AFTER"))
-	if auto_screenshot_path != "" or auto_quit_after_sec > 0.0:
+		if OS.get_environment("APD_QUEST_SCREENSHOT") != "":
+			auto_screenshot_path = OS.get_environment("APD_QUEST_SCREENSHOT")
 		_run_capture_flow()
+
 
 
 func _run_capture_flow() -> void:
