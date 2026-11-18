@@ -27,17 +27,7 @@ if errorlevel 1 (
 
 set "GODOT="
 
-REM --- 1) PATH (godot / godot.cmd) ---
-for /f "delims=" %%I in ('where godot 2^>nul') do (
-  set "GODOT=%%I"
-  goto :found
-)
-for /f "delims=" %%I in ('where godot.cmd 2^>nul') do (
-  set "GODOT=%%I"
-  goto :found
-)
-
-REM --- 2) Known Downloads / local installs (prefer non-mono console) ---
+REM --- 1) Prefer real Godot .exe under Downloads / common installs (skip PATH wrappers first) ---
 set "CANDIDATES="
 set "CANDIDATES=!CANDIDATES!;%USERPROFILE%\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64_console.exe"
 set "CANDIDATES=!CANDIDATES!;%USERPROFILE%\Downloads\Godot_v4.7.2-stable_win64.exe\Godot_v4.7.2-stable_win64.exe"
@@ -59,7 +49,7 @@ for %%P in (!CANDIDATES!) do (
   )
 )
 
-REM --- 3) Scan Downloads for any Godot 4.* win64 console (skip mono if possible) ---
+REM --- 2) Scan Downloads for Godot 4.* win64 console (skip mono) ---
 for /f "delims=" %%F in ('dir /s /b "%USERPROFILE%\Downloads\Godot_v4*_win64_console.exe" 2^>nul') do (
   echo %%F | findstr /I "mono" >nul
   if errorlevel 1 (
@@ -68,18 +58,28 @@ for /f "delims=" %%F in ('dir /s /b "%USERPROFILE%\Downloads\Godot_v4*_win64_con
   )
 )
 for /f "delims=" %%F in ('dir /s /b "%USERPROFILE%\Downloads\Godot_v4*_win64.exe" 2^>nul') do (
-  echo %%F | findstr /I "mono\|_console" >nul
+  echo %%F | findstr /I "mono console" >nul
   if errorlevel 1 (
     set "GODOT=%%F"
     goto :found
   )
 )
 
+REM --- 3) PATH last (godot.cmd wrappers OK as fallback) ---
+for /f "delims=" %%I in ('where godot 2^>nul') do (
+  set "GODOT=%%I"
+  goto :found
+)
+for /f "delims=" %%I in ('where godot.cmd 2^>nul') do (
+  set "GODOT=%%I"
+  goto :found
+)
+
 echo [BLAD] Nie znaleziono Godot 4.
 echo.
 echo Zainstaluj Godot 4.3+ ^(zalecane 4.7.2, wersja standardowa — nie mono^)
 echo   https://godotengine.org/download/windows/
-echo albo dodaj godot do PATH, albo rozpakuj do:
+echo albo rozpakuj do:
 echo   %USERPROFILE%\Downloads\Godot_v4.7.2-stable_win64.exe\
 echo.
 pause
@@ -98,6 +98,7 @@ if not "%ERR%"=="0" (
   echo.
   echo [BLAD] Godot zakonczyl sie kodem %ERR%.
   echo Jesli komunikat to "no main scene" — otworzyles zly folder projektu.
+  echo Jesli SCRIPT ERROR / class_name — zrob git pull (preload fix).
   pause
 )
 exit /b %ERR%

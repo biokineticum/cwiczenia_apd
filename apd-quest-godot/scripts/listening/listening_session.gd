@@ -2,6 +2,8 @@ extends Node
 class_name ListeningSession
 ## Fasada sesji słuchowej: wybór typu ćwiczenia + opcjonalny szum + most UI.
 
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
+
 signal session_finished(success: bool, detail: Dictionary)
 signal ui_changed(state: Dictionary)
 

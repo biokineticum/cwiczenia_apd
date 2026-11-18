@@ -1,6 +1,8 @@
 extends CharacterBody3D
 ## Third-person ruch względem kamery. Blokowany gdy QuestManager.movement_locked.
 
+const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_builder.gd")
+
 @export var speed: float = 4.5
 @export var acceleration: float = 14.0
 @export var gravity: float = 20.0

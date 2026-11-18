@@ -1,6 +1,9 @@
 extends Node3D
 ## NPC z Area3D — E startuje ofertę questu; bajkowy wygląd z StylizedCharacterBuilder.
 
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
+const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_builder.gd")
+
 @export var npc_id: String = "npc_echo"
 @export var display_name: String = "Echo"
 @export var body_color: Color = Color(0.35, 0.55, 0.85, 1)

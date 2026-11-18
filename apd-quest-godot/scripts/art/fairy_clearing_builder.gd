@@ -1,6 +1,7 @@
 extends Node3D
 ## Bajkowa polana: pagórki, teksturowana trawa, drzewa z korą, chatka, płotek, lampiony, atmosfera.
 
+const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 
 @export var world_size: float = 56.0
 @export var terrain_res: int = 52

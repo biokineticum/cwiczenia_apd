@@ -1,5 +1,9 @@
 extends Node
 ## Echo 5-latka: odsłuch → tap ikon w kolejności (bez napisów dla dziecka).
+
+const NoisePlayer = preload("res://scripts/audio/noise_player.gd")
+const SpeechPlayer = preload("res://scripts/audio/speech_player.gd")
+
 signal finished(success: bool, detail: Dictionary)
 signal ui_changed(state: Dictionary)
 

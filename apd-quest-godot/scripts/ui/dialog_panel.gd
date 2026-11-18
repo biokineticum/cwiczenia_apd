@@ -1,6 +1,8 @@
 extends Control
 ## Prosty panel dialogu PL. Przy ofercie questu: „Zaczynam!” startuje mini-grę.
 
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
+
 signal accepted(quest_id: String)
 signal dismissed
 

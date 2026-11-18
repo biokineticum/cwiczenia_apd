@@ -1,5 +1,9 @@
 extends Node
 ## Burza 5-latka: odsłuch zdania → wybór obrazka (2–4), bez tekstu MC na ekranie dziecka.
+
+const NoisePlayer = preload("res://scripts/audio/noise_player.gd")
+const SpeechPlayer = preload("res://scripts/audio/speech_player.gd")
+
 signal finished(success: bool, detail: Dictionary)
 signal ui_changed(state: Dictionary)
 

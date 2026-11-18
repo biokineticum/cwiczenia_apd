@@ -2,6 +2,8 @@ extends SceneTree
 ## Headless smoke for 5yo data + sequence builder.
 ## godot --path apd-quest-godot --headless -s res://scripts/smoke_test.gd
 
+const IconFactory = preload("res://scripts/art/icon_factory.gd")
+
 
 func _initialize() -> void:
 	print("[smoke] start")

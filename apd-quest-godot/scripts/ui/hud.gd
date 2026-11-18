@@ -1,6 +1,8 @@
 extends CanvasLayer
 ## HUD: punkty, hint interakcji, disclaimer treningowy.
 
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
+
 @onready var points_label: Label = $Margin/VBox/PointsLabel
 @onready var hint_label: Label = $Margin/VBox/HintLabel
 @onready var disclaimer: Label = $Margin/VBox/Disclaimer
