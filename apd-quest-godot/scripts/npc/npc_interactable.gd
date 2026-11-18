@@ -1,8 +1,11 @@
 extends Node3D
-## NPC z Area3D — E startuje ofertę questu; bajkowy wygląd z StylizedCharacterBuilder.
+## NPC: wejdź postacią w strefę → start rozmowy (bez E / bez klikania).
 
 const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
 const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_builder.gd")
+
+const ENTER_DWELL_SEC := 0.22
+const COOLDOWN_MS := 2500
 
 @export var npc_id: String = "npc_echo"
 @export var display_name: String = "Echo"
@@ -10,16 +13,32 @@ const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_b
 @export_enum("echo", "storm", "girl") var character_style: String = "echo"
 
 var _player_near: bool = false
+var _dwell_t: float = 0.0
+var _cooldown_until: int = 0
 
 
 func _ready() -> void:
 	var area: Area3D = $InteractionArea
 	area.body_entered.connect(_on_body_entered)
 	area.body_exited.connect(_on_body_exited)
-	# Bez napisów imion nad NPC — dziecko nie czyta; rodzic wie kto jest kto z wyglądu.
 	if has_node("NameLabel"):
 		$NameLabel.visible = false
 	_rebuild_visual()
+
+
+func _physics_process(delta: float) -> void:
+	if not _player_near:
+		_dwell_t = 0.0
+		return
+	if QuestManager.movement_locked:
+		_dwell_t = 0.0
+		return
+	if Time.get_ticks_msec() < _cooldown_until:
+		return
+	_dwell_t += delta
+	if _dwell_t >= ENTER_DWELL_SEC:
+		_dwell_t = 0.0
+		_try_talk()
 
 
 func _rebuild_visual() -> void:
@@ -30,7 +49,6 @@ func _rebuild_visual() -> void:
 		add_child(visual)
 	for c in visual.get_children():
 		c.queue_free()
-	# Usuń stary pojedynczy mesh jeśli został w scenie
 	if has_node("MeshInstance3D"):
 		$MeshInstance3D.hide()
 	var style := StylizedCharacterBuilder.Style.ECHO
@@ -49,35 +67,27 @@ func _rebuild_visual() -> void:
 	built.free()
 
 
-func _unhandled_input(event: InputEvent) -> void:
-	if not _player_near:
-		return
-	if QuestManager.movement_locked:
-		return
-	if event.is_action_pressed("interact"):
-		_try_talk()
-		get_viewport().set_input_as_handled()
-
-
 func _try_talk() -> void:
 	var q: QuestDefinition = QuestManager.get_quest_for_npc(npc_id)
 	if q == null:
 		print("[%s] Brak questu dla npc_id=%s" % [display_name, npc_id])
 		get_tree().call_group("hud", "set_hint", "")
 		return
+	_cooldown_until = Time.get_ticks_msec() + COOLDOWN_MS
 	ProgressStore.unlock_badge("met_%s" % npc_id)
+	print("[%s] Wejście — start rozmowy (bez klikania)." % display_name)
 	QuestManager.offer_quest(q.id)
 
 
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		_player_near = true
-		# Ikona rozmowy (bez tekstu do czytania).
+		_dwell_t = 0.0
 		get_tree().call_group("hud", "set_hint", "porozmawiaj")
-		print("[%s] Podchodzisz — naciśnij E, by porozmawiać." % display_name)
 
 
 func _on_body_exited(body: Node) -> void:
 	if body.is_in_group("player"):
 		_player_near = false
+		_dwell_t = 0.0
 		get_tree().call_group("hud", "set_hint", "")

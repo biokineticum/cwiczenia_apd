@@ -23,9 +23,10 @@ Bez otwierania edytora Godot:
    `Godot_*.exe --path <ten-folder>`.
 4. Jeśli Godot nie jest zainstalowany — bat wypisze jasny komunikat.
 
-Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → ikona play (start).  
-**Echo (3D):** 1 rząd symboli (Δ≈2,8 m) + 1 linia kółek 1–4 (Δ≈2,5 m), odstęp rzędów ≈3 m. Area < mesh. Na planszy chód wolniejszy. **Wejdź w symbol → wejdź w świecące kółko.**  
-**Burza:** duże obrazki (tap). Rodzic: long-press ikony dorosłego.
+Na polanie: **WASD** (+ opcjonalnie PPM kamery). **Bez klikania** dla dziecka.  
+**NPC:** wejdź w Echo/Burzę → rozmowa. **Start:** wejdź w zielone kółko.  
+**Echo:** wejdź w symbol → wejdź w kółko 1–4. **Burza:** wejdź w obrazek na ziemi.  
+Rodzic: long-press ikony dorosłego (tekst/szum).
 
 ### Edytor (opcjonalnie, F5)
 
@@ -39,8 +40,8 @@ One nie mają `run/main_scene` → błąd *"Can't run project: no main scene def
 
 | NPC | Quest | Mechanika (dziecko) |
 |-----|-------|---------------------|
-| Echo | Zaklęcie Echo | Sekwencja 2–3 → **tap ikon w kolejności** |
-| Burza | Wiadomość w burzy | Odsłuch → **wskaż obrazek** (2–4) |
+| Echo | Zaklęcie Echo | Odsłuch → **wejdź w symbole**, potem **kółka 1–4** |
+| Burza | Wiadomość w burzy | Odsłuch → **wejdź w obrazek** na polanie |
 
 ## Smoke test (headless)
 
