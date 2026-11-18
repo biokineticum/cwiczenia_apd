@@ -310,16 +310,42 @@ func _build_sequence() -> void:
 		if typeof(data) == TYPE_DICTIONARY:
 			length_min = int(data.get("default_length_min", 4))
 			length_max = int(data.get("default_length_max", 4))
-	ids.shuffle()
+	var qid := QuestManager.active_quest_id()
+	var last = QuestManager.get_last_roll(qid) if qid != "" else null
 	var n := randi_range(mini(length_min, length_max), maxi(length_min, length_max))
-	sequence = PackedStringArray()
+	n = mini(n, ids.size())
+	var best: PackedStringArray = PackedStringArray()
+	for _attempt in 8:
+		var pool: Array = ids.duplicate()
+		pool.shuffle()
+		var cand := PackedStringArray()
+		for i in n:
+			cand.append(str(pool[i]))
+		if last == null or not _same_packed(cand, last):
+			best = cand
+			break
+		best = cand
+	sequence = best
 	sequence_icons = PackedStringArray()
 	sequence_labels = PackedStringArray()
-	for i in mini(n, ids.size()):
-		var wid := str(ids[i])
-		sequence.append(wid)
-		sequence_icons.append(str(_word_meta[wid]["icon"]))
-		sequence_labels.append(str(_word_meta[wid]["label"]))
+	for wid in sequence:
+		sequence_icons.append(str(_word_meta[str(wid)]["icon"]))
+		sequence_labels.append(str(_word_meta[str(wid)]["label"]))
+	if qid != "":
+		QuestManager.remember_roll(qid, sequence.duplicate())
+
+
+func _same_packed(a: Variant, b: Variant) -> bool:
+	if typeof(a) != TYPE_PACKED_STRING_ARRAY or typeof(b) != TYPE_PACKED_STRING_ARRAY:
+		return str(a) == str(b)
+	var pa: PackedStringArray = a
+	var pb: PackedStringArray = b
+	if pa.size() != pb.size():
+		return false
+	for i in pa.size():
+		if str(pa[i]) != str(pb[i]):
+			return false
+	return true
 
 
 func _exit_tree() -> void:

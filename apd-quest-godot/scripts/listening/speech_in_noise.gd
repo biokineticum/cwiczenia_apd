@@ -204,24 +204,51 @@ func _pick_item() -> void:
 	var fallback_text := "Pies biegnie po parku"
 	var fallback_ill := "park"
 	var distractors: Array = ["sleep", "house", "car"]
+	var qid := QuestManager.active_quest_id()
+	var last = QuestManager.get_last_roll(qid) if qid != "" else null
+	var last_ill := ""
+	if typeof(last) == TYPE_DICTIONARY:
+		last_ill = str(last.get("illustration", ""))
+	elif typeof(last) == TYPE_STRING:
+		last_ill = str(last)
+
 	if FileAccess.file_exists(path):
 		var data = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if typeof(data) == TYPE_DICTIONARY:
 			var items: Array = data.get("items", [])
 			if not items.is_empty():
-				var item = items[randi() % items.size()]
-				if typeof(item) == TYPE_DICTIONARY:
-					target_sentence = str(item.get("text_pl", fallback_text))
-					target_illustration = str(item.get("illustration", fallback_ill))
-					distractors = item.get("distractors", distractors)
+				var pick = null
+				for _attempt in 8:
+					var item = items[randi() % items.size()]
+					var ill := fallback_ill
+					if typeof(item) == TYPE_DICTIONARY:
+						ill = str(item.get("illustration", fallback_ill))
+					if last_ill == "" or ill != last_ill or items.size() <= 1:
+						pick = item
+						break
+					pick = item
+				if typeof(pick) == TYPE_DICTIONARY:
+					target_sentence = str(pick.get("text_pl", fallback_text))
+					target_illustration = str(pick.get("illustration", fallback_ill))
+					distractors = pick.get("distractors", distractors)
 				else:
-					target_sentence = str(item)
+					target_sentence = str(pick)
 					target_illustration = fallback_ill
 				_build_choices(distractors)
+				if qid != "":
+					QuestManager.remember_roll(qid, {
+						"illustration": target_illustration,
+						"sentence": target_sentence,
+					})
 				return
 	target_sentence = fallback_text
 	target_illustration = fallback_ill
 	_build_choices(distractors)
+	if qid != "":
+		QuestManager.remember_roll(qid, {
+			"illustration": target_illustration,
+			"sentence": target_sentence,
+		})
 
 
 func _build_choices(distractors: Array) -> void:

@@ -1,12 +1,13 @@
 extends Node3D
-## NPC: wejdź postacią w strefę → start rozmowy (bez E / bez klikania).
-## One-shot do wyjścia ze strefy; wyłączone gdy oferta/quest aktywny.
+## NPC: wejście → oferta (odnawialna). Badge nie gate'uje.
+## PL-18 anty-spam + twardy kontrakt renew po quest_finished.
 
 const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
 const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_builder.gd")
 
 const ENTER_DWELL_SEC := 0.28
 const COOLDOWN_MS := 4000
+const POST_QUEST_COOLDOWN_MS := 900
 
 @export var npc_id: String = "npc_echo"
 @export var display_name: String = "Echo"
@@ -16,19 +17,21 @@ const COOLDOWN_MS := 4000
 var _player_near: bool = false
 var _dwell_t: float = 0.0
 var _cooldown_until: int = 0
-## Po rozmowie wymagane wyjście ze strefy zanim kolejna oferta.
 var _talk_latched: bool = false
 var _area_enabled: bool = true
 var _area: Area3D = null
 
 
 func _ready() -> void:
+	add_to_group("npc")
 	_area = $InteractionArea
 	_area.body_entered.connect(_on_body_entered)
 	_area.body_exited.connect(_on_body_exited)
 	if has_node("NameLabel"):
 		$NameLabel.visible = false
 	_rebuild_visual()
+	QuestManager.quest_finished.connect(_on_quest_finished)
+	QuestManager.interact_available.connect(_on_interact_available)
 
 
 func _physics_process(delta: float) -> void:
@@ -51,16 +54,63 @@ func _physics_process(delta: float) -> void:
 
 
 func _sync_area_enabled() -> void:
+	# Area wyłączona tylko podczas active/offer/dialog — nigdy „bo completed”.
 	var want := not QuestManager.npc_interact_blocked()
 	if want == _area_enabled:
 		return
+	var was := _area_enabled
 	_area_enabled = want
-	# set_deferred: nie zmieniaj monitoring w środku fizyki / sygnałów Area.
 	_area.set_deferred("monitoring", want)
 	if not want:
 		_player_near = false
 		_dwell_t = 0.0
 		get_tree().call_group("hud", "set_hint", "")
+	elif not was:
+		call_deferred("_refresh_overlap")
+
+
+func _refresh_overlap() -> void:
+	if _area == null or not is_instance_valid(_area):
+		return
+	if not _area.monitoring:
+		return
+	_player_near = false
+	for body in _area.get_overlapping_bodies():
+		if body is Node and (body as Node).is_in_group("player"):
+			_player_near = true
+			break
+	_dwell_t = 0.0
+	if _player_near and not QuestManager.npc_interact_blocked() and not _talk_latched:
+		get_tree().call_group("hud", "set_hint", "porozmawiaj")
+
+
+func on_quest_renew(for_npc_id: String) -> void:
+	if for_npc_id != "" and for_npc_id != npc_id:
+		return
+	_talk_latched = false
+	_cooldown_until = Time.get_ticks_msec() + POST_QUEST_COOLDOWN_MS
+	# Wymuś Area ON jeśli manager już odblokował.
+	if not QuestManager.npc_interact_blocked():
+		_area_enabled = false # skłoń _sync do restore
+		_sync_area_enabled()
+	call_deferred("_refresh_overlap")
+
+
+func _on_quest_finished(quest: Variant, _success: bool) -> void:
+	if quest == null:
+		return
+	var q_npc := ""
+	if typeof(quest) == TYPE_OBJECT and quest.get("npc_id") != null:
+		q_npc = str(quest.npc_id)
+	if q_npc != "" and q_npc != npc_id:
+		return
+	on_quest_renew(npc_id)
+
+
+func _on_interact_available() -> void:
+	_talk_latched = false
+	_cooldown_until = maxi(_cooldown_until, Time.get_ticks_msec() + POST_QUEST_COOLDOWN_MS)
+	call_deferred("_refresh_overlap")
 
 
 func _rebuild_visual() -> void:
@@ -92,10 +142,16 @@ func _rebuild_visual() -> void:
 func _try_talk() -> void:
 	if _talk_latched or QuestManager.npc_interact_blocked():
 		return
-	var q: QuestDefinition = QuestManager.get_quest_for_npc(npc_id)
+	var q: QuestDefinition = QuestManager.get_template_for_npc(npc_id)
 	if q == null:
-		print("[%s] Brak questu dla npc_id=%s" % [display_name, npc_id])
+		print("[%s] Brak szablonu dla npc_id=%s" % [display_name, npc_id])
 		get_tree().call_group("hud", "set_hint", "")
+		return
+	if not QuestManager.can_offer(q.id):
+		# Soft rest — nie cisza / nie martwy NPC.
+		QuestManager.offer_quest(q.id) # wywoła rest gdy daily_pool
+		_talk_latched = true
+		_cooldown_until = Time.get_ticks_msec() + COOLDOWN_MS
 		return
 	_talk_latched = true
 	_cooldown_until = Time.get_ticks_msec() + COOLDOWN_MS
