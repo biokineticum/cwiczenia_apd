@@ -1,73 +1,104 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 
 function Navbar({ currentView, setCurrentView }) {
-    const isHome = currentView === 'home';
+  const [menuOpen, setMenuOpen] = useState(false);
+  const isHome = currentView === 'home';
 
-    const handleAplikacjaClick = (e) => {
-        e.preventDefault();
-        setCurrentView('home');
-        // Scroll to app top immediately or after a render
-        setTimeout(() => {
-            const appSection = document.getElementById('aplikacja');
-            if (appSection) {
-                appSection.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            }
-        }, 100);
-    };
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [currentView]);
 
-    const handleAboutClick = (e) => {
-        e.preventDefault();
-        setCurrentView('home');
-        setTimeout(() => {
-            const aboutSection = document.getElementById('czym-jest-apd');
-            if (aboutSection) {
-                aboutSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        }, 100);
-    };
+  const goApp = (e) => {
+    e.preventDefault();
+    setCurrentView('home');
+    setMenuOpen(false);
+    setTimeout(() => {
+      const appSection = document.getElementById('aplikacja');
+      if (appSection) appSection.scrollIntoView({ behavior: 'smooth' });
+      else window.scrollTo({ top: 0, behavior: 'smooth' });
+    }, 80);
+  };
 
-    return (
-        <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16">
-                    <div className="flex items-center">
-                        <a 
-                            href="#" 
-                            onClick={handleAplikacjaClick}
-                            className="text-xl font-bold text-blue-600 flex items-center gap-2"
-                        >
-                            🎧 Domowe-APD.pl
-                        </a>
-                    </div>
-                    <div className="hidden md:flex space-x-8">
-                        <a 
-                            href="#aplikacja" 
-                            onClick={handleAplikacjaClick}
-                            className={`text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors ${isHome ? '' : 'opacity-80'}`}
-                        >
-                            Aplikacja
-                        </a>
-                        <a 
-                            href="#czym-jest-apd" 
-                            onClick={handleAboutClick}
-                            className="text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors"
-                        >
-                            Czym jest APD?
-                        </a>
-                        <a 
-                            href="#" 
-                            onClick={(e) => { e.preventDefault(); setCurrentView('privacy'); window.scrollTo(0,0); }}
-                            className={`text-gray-700 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors ${currentView === 'privacy' ? 'text-blue-600 font-bold' : ''}`}
-                        >
-                            Polityka Prywatności
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </nav>
-    );
+  const goAbout = (e) => {
+    e.preventDefault();
+    setCurrentView('home');
+    setMenuOpen(false);
+    setTimeout(() => {
+      document.getElementById('czym-jest-apd')?.scrollIntoView({ behavior: 'smooth' });
+    }, 80);
+  };
+
+  const goPrivacy = (e) => {
+    e.preventDefault();
+    setCurrentView('privacy');
+    setMenuOpen(false);
+    window.scrollTo(0, 0);
+  };
+
+  const linkClass = (active) =>
+    `block min-h-[44px] px-3 py-2 rounded-lg text-sm font-medium transition-colors touch-manipulation ${
+      active ? 'text-teal-700 font-semibold' : 'text-slate-700 hover:text-teal-700'
+    }`;
+
+  return (
+    <nav className="bg-white/95 backdrop-blur shadow-sm fixed top-0 left-0 right-0 z-50 border-b border-slate-100">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-14 md:h-16">
+          <a
+            href="#aplikacja"
+            onClick={goApp}
+            className="text-lg sm:text-xl font-bold text-teal-700 flex items-center gap-2 min-h-[44px]"
+          >
+            <span aria-hidden>🎧</span>
+            <span>Domowe-APD.pl</span>
+          </a>
+
+          <div className="hidden md:flex items-center gap-2">
+            <a href="#aplikacja" onClick={goApp} className={linkClass(isHome)}>
+              Aplikacja
+            </a>
+            <a href="#czym-jest-apd" onClick={goAbout} className={linkClass(false)}>
+              Czym jest APD?
+            </a>
+            <a href="#privacy" onClick={goPrivacy} className={linkClass(currentView === 'privacy')}>
+              Polityka prywatności
+            </a>
+          </div>
+
+          <button
+            type="button"
+            className="md:hidden min-h-[44px] min-w-[44px] inline-flex items-center justify-center rounded-lg text-slate-700 touch-manipulation"
+            aria-expanded={menuOpen}
+            aria-controls="mobile-nav"
+            aria-label={menuOpen ? 'Zamknij menu' : 'Otwórz menu'}
+            onClick={() => setMenuOpen((v) => !v)}
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+              {menuOpen ? (
+                <path d="M6 6l12 12M18 6L6 18" />
+              ) : (
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              )}
+            </svg>
+          </button>
+        </div>
+
+        {menuOpen && (
+          <div id="mobile-nav" className="md:hidden pb-3 space-y-1 border-t border-slate-100 pt-2">
+            <a href="#aplikacja" onClick={goApp} className={linkClass(isHome)}>
+              Aplikacja
+            </a>
+            <a href="#czym-jest-apd" onClick={goAbout} className={linkClass(false)}>
+              Czym jest APD?
+            </a>
+            <a href="#privacy" onClick={goPrivacy} className={linkClass(currentView === 'privacy')}>
+              Polityka prywatności
+            </a>
+          </div>
+        )}
+      </div>
+    </nav>
+  );
 }
 
 export default Navbar;
