@@ -1,0 +1,8 @@
+{
+  "note": "Mapowanie icon_id → generator proceduralny (IconFactory). Później można podmienić na PNG.",
+  "icons": [
+    "dog", "cat", "house", "ball", "apple", "bread", "milk", "bird",
+    "flower", "sun", "rain", "tree", "book", "door", "water", "car",
+    "sleep", "park", "ear", "parent", "undo"
+  ]
+}

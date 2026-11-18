@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/ui/listening_overlay.gd" id="1_listen"]
+[ext_resource type="PackedScene" path="res://scenes/ui/parent_overlay.tscn" id="2_parent"]
 
 [node name="ListeningOverlay" type="Control"]
 layout_mode = 3
@@ -16,7 +17,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.04, 0.12, 0.1, 0.62)
+color = Color(0.08, 0.16, 0.14, 0.7)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -25,73 +26,64 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -280.0
-offset_top = -220.0
-offset_right = 280.0
-offset_bottom = 220.0
-grow_horizontal = 2
-grow_vertical = 2
+offset_left = -300.0
+offset_top = -250.0
+offset_right = 300.0
+offset_bottom = 250.0
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 14
+alignment = 1
 
-[node name="Title" type="Label" parent="Panel/VBox"]
+[node name="EarFlash" type="TextureRect" parent="Panel/VBox"]
+custom_minimum_size = Vector2(96, 96)
 layout_mode = 2
-theme_override_font_sizes/font_size = 24
-text = "Quest"
-horizontal_alignment = 1
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Status" type="Label" parent="Panel/VBox"]
+[node name="WarmFeedback" type="TextureRect" parent="Panel/VBox"]
+visible = false
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-autowrap_mode = 3
-text = "Słuchaj uważnie…"
-horizontal_alignment = 1
+size_flags_horizontal = 4
+expand_mode = 1
+stretch_mode = 5
 
-[node name="Flash" type="Label" parent="Panel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 32
-horizontal_alignment = 1
-text = ""
-
-[node name="NoiseInfo" type="Label" parent="Panel/VBox"]
-layout_mode = 2
-autowrap_mode = 3
-horizontal_alignment = 1
-text = "Szum: wyłączony"
-
-[node name="Hint" type="Label" parent="Panel/VBox"]
-layout_mode = 2
-autowrap_mode = 3
-horizontal_alignment = 1
-modulate = Color(0.9, 0.92, 0.85, 1)
-text = ""
-
-[node name="Selected" type="Label" parent="Panel/VBox"]
-layout_mode = 2
-autowrap_mode = 3
-horizontal_alignment = 1
-text = ""
-
-[node name="Choices" type="VBoxContainer" parent="Panel/VBox"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="Controls" type="HBoxContainer" parent="Panel/VBox"]
+[node name="Slots" type="HBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
 alignment = 1
 theme_override_constants/separation = 12
 
-[node name="NoiseToggle" type="CheckButton" parent="Panel/VBox/Controls"]
+[node name="Choices" type="GridContainer" parent="Panel/VBox"]
 layout_mode = 2
-text = "Szum"
+size_flags_horizontal = 4
+theme_override_constants/h_separation = 16
+theme_override_constants/v_separation = 16
+columns = 2
 
-[node name="Replay" type="Button" parent="Panel/VBox/Controls"]
-custom_minimum_size = Vector2(120, 44)
+[node name="Controls" type="HBoxContainer" parent="Panel/VBox"]
 layout_mode = 2
-text = "Odsłuchaj"
+alignment = 1
+theme_override_constants/separation = 20
 
-[node name="Undo" type="Button" parent="Panel/VBox/Controls"]
-custom_minimum_size = Vector2(120, 44)
+[node name="Replay" type="TextureButton" parent="Panel/VBox/Controls"]
+custom_minimum_size = Vector2(72, 72)
 layout_mode = 2
-text = "Cofnij"
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Undo" type="TextureButton" parent="Panel/VBox/Controls"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="Parent" type="TextureButton" parent="Panel/VBox/Controls"]
+custom_minimum_size = Vector2(72, 72)
+layout_mode = 2
+ignore_texture_size = true
+stretch_mode = 5
+
+[node name="ParentOverlay" parent="." instance=ExtResource("2_parent")]

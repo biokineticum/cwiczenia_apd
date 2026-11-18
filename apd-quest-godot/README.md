@@ -1,34 +1,31 @@
-# APD Quest (Godot 4) — vertical slice
+# APD Quest (Godot 4) — vertical slice (UX ~5 lat, bez czytania)
 
-Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy słuchowe** oparte o ćwiczenia z web app Trening APD (`cwiczenia_apd`).
+Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy słuchowe**.
 
-To **trening wspomagający** (nie diagnostyka). Szum w grze to **względny poziom trudności**, nie kliniczny SNR.
+To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudności**, nie kliniczny SNR.
+
+**Dziecko (~5 lat, nie czyta):** odpowiedzi = **ikony / obrazki** (tap). Tekst bodźca i szum → **tryb rodzica** (przytrzymaj ikonę dorosłego ~1,5 s).
 
 ## Wymagania
 
 - **Godot 4.3+** (testowane na **4.7.2** Forward+), Windows OK.
-- Opcjonalnie: polski głos SAPI / systemowy TTS (lepsze odsłuchy; bez TTS gra pokazuje krótki podgląd tekstu).
+- Polski TTS (SAPI) zalecany do odsłuchu; bez TTS dziecko i tak nie dostaje napisów — tylko ikona ucha.
 
 ## Jak uruchomić (Dariusz) — F5
 
 1. Zaktualizuj repo `cwiczenia_apd` i checkout brancha PR (lub `main` po merge).
 2. Uruchom **Godot 4** → **Import** / **Open** → folder `apd-quest-godot/` (`project.godot`).
-3. Poczekaj na import (pierwszy raz tworzy `.godot/` lokalnie).
-4. Naciśnij **F5** (Play Project).
-5. Na polanie:
-   - **WASD** / strzałki — ruch
-   - **PPM + mysz** — obrót kamery (Esc zwalnia kursor)
-   - Podejdź do **Echo** (niebieski) lub **Burza** (fiolet) → **E**
-   - Dialog → **Zaczynam!** → mini-gra słuchowa
-   - Przełącznik **Szum** w overlay (względny poziom)
-   - Po sukcesie: punkty w HUD + dialog podziękowania
+3. Naciśnij **F5**.
+4. Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → **Zaczynam!**
+5. Mini-gra: duże kafelki-ikony; **ucho** = odsłuchaj; **strzałka wstecz** = cofnij; **długie przytrzymanie ikony rodzica** = tekst + szum.
+6. Po sukcesie: ciepły feedback + punkty + krótki dialog.
 
-### Questy w slice
+### Questy
 
-| NPC | Quest | Mechanika |
-|-----|-------|-----------|
-| Echo | Zaklęcie Echo | Sekwencja słów → tap w kolejności |
-| Burza | Wiadomość w burzy | Odsłuch zdania → wybór MC |
+| NPC | Quest | Mechanika (dziecko) |
+|-----|-------|---------------------|
+| Echo | Zaklęcie Echo | Sekwencja 2–3 → **tap ikon w kolejności** |
+| Burza | Wiadomość w burzy | Odsłuch → **wskaż obrazek** (2–4) |
 
 ## Smoke test (headless)
 
