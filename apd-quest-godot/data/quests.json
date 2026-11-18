@@ -6,8 +6,9 @@
       "npc_id": "npc_echo",
       "exercise_type": "word_sequence",
       "dialog_offer": [
-        "Cześć! Jestem Echo.",
-        "Pomóż mi zapamiętać magiczne słowa — powtórz je w tej samej kolejności."
+        "Cześć! Jestem Echo z Polany.",
+        "Pomóż mi zapamiętać magiczne słowa — powtórz je w tej samej kolejności.",
+        "To trening pamięci słuchowej — nie test diagnostyczny."
       ],
       "dialog_done": [
         "Świetnie! Zaklęcie znów działa. Dziękuję!"
@@ -21,11 +22,12 @@
       "npc_id": "npc_storm",
       "exercise_type": "speech_in_noise",
       "dialog_offer": [
-        "Burza szumi, a ja mam ważną wiadomość.",
-        "Posłuchaj uważnie i wybierz, co usłyszałaś."
+        "Jestem Burza. Szum wokół nas bywa głośny.",
+        "Posłuchaj wiadomości i wybierz, co usłyszałaś.",
+        "Szum możesz włączyć — to względny poziom trudności, nie kliniczny SNR."
       ],
       "dialog_done": [
-        "Udało się — wiadomość dotarła!"
+        "Udało się — wiadomość dotarła przez burzę!"
       ],
       "noise_optional": true,
       "reward_points": 25

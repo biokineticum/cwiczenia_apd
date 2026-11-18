@@ -1,5 +1,5 @@
 extends Control
-## Prosty panel dialogu PL. Przy ofercie questu: przycisk „Zaczynam!” startuje mini-grę.
+## Prosty panel dialogu PL. Przy ofercie questu: „Zaczynam!” startuje mini-grę.
 
 signal accepted(quest_id: String)
 signal dismissed
@@ -29,6 +29,7 @@ func show_dialog(lines: PackedStringArray, quest_id: String, phase: String) -> v
 	accept_btn.visible = phase == "offer"
 	accept_btn.text = "Zaczynam!"
 	close_btn.text = "OK" if phase == "done" else "Nie teraz"
+	QuestManager.movement_locked = true
 	visible = true
 
 
@@ -40,4 +41,6 @@ func _on_accept() -> void:
 
 func _on_close() -> void:
 	visible = false
+	if _phase != "offer" or QuestManager.active_quest == null:
+		QuestManager.movement_locked = false
 	dismissed.emit()

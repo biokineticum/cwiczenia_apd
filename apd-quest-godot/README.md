@@ -1,50 +1,53 @@
-# APD Quest (Godot 4)
+# APD Quest (Godot 4) — vertical slice
 
-Przyjazna przygoda 3D: dziewczynka zwiedza świat i wykonuje **questy słuchowe** oparte o ćwiczenia z web app Trening APD (`cwiczenia_apd`).
+Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy słuchowe** oparte o ćwiczenia z web app Trening APD (`cwiczenia_apd`).
 
-To **trening wspomagający** (nie diagnostyka). Szum w grze to **względny poziom trudności**, nie kliniczny SNR — dopóki nie ma wspólnego mixu + nagrań.
-
-Architektura (Project store):  
-`/cursor/stores/self/docs/architektura-gry-apd-godot.md`  
-(w repozytorium kontekstu projektu Cursor; ścieżka lokalna agenta: docs w store projektu).
+To **trening wspomagający** (nie diagnostyka). Szum w grze to **względny poziom trudności**, nie kliniczny SNR.
 
 ## Wymagania
 
-- **Godot 4.3+** (4.x Forward+), zainstalowany na PC właściciela.
-- Cloud / CI **nie** uruchamia edytora Godot (brak binarki w VM).
+- **Godot 4.3+** (testowane na **4.7.2** Forward+), Windows OK.
+- Opcjonalnie: polski głos SAPI / systemowy TTS (lepsze odsłuchy; bez TTS gra pokazuje krótki podgląd tekstu).
 
-## Jak otworzyć na PC (Dariusz)
+## Jak uruchomić (Dariusz) — F5
 
-1. Sklonuj / zaktualizuj repo `cwiczenia_apd`.
-2. Uruchom **Godot 4** → **Import** lub **Open**.
-3. Wskaż folder `apd-quest-godot/` (plik `project.godot`).
-4. Poczekaj na pierwszy import assetów.
-5. Naciśnij **F5** (Play) — powinna wczytać się scena `scenes/main.tscn` (polana stub + gracz + NPC).
-6. Sterowanie: **WASD** / strzałki, **E** = rozmowa z NPC.
+1. Zaktualizuj repo `cwiczenia_apd` i checkout brancha PR (lub `main` po merge).
+2. Uruchom **Godot 4** → **Import** / **Open** → folder `apd-quest-godot/` (`project.godot`).
+3. Poczekaj na import (pierwszy raz tworzy `.godot/` lokalnie).
+4. Naciśnij **F5** (Play Project).
+5. Na polanie:
+   - **WASD** / strzałki — ruch
+   - **PPM + mysz** — obrót kamery (Esc zwalnia kursor)
+   - Podejdź do **Echo** (niebieski) lub **Burza** (fiolet) → **E**
+   - Dialog → **Zaczynam!** → mini-gra słuchowa
+   - Przełącznik **Szum** w overlay (względny poziom)
+   - Po sukcesie: punkty w HUD + dialog podziękowania
 
-Jeśli pojawią się ostrzeżenia o UID / brakujących `.godot/` — normalne przy pierwszym otwarciu z chmury; Godot wygeneruje cache lokalnie (folder `.godot/` jest w `.gitignore`).
+### Questy w slice
 
-## Co jest w szkielecie
+| NPC | Quest | Mechanika |
+|-----|-------|-----------|
+| Echo | Zaklęcie Echo | Sekwencja słów → tap w kolejności |
+| Burza | Wiadomość w burzy | Odsłuch zdania → wybór MC |
+
+## Smoke test (headless)
+
+```text
+godot --path apd-quest-godot --headless -s res://scripts/smoke_test.gd
+```
+
+## Co jest w projekcie
 
 | Element | Ścieżka |
 |---------|---------|
 | Główna scena | `scenes/main.tscn` |
-| Gracz (placeholder) | `scenes/player/player_girl.tscn` |
-| Świat stub | `scenes/world/world_stub.tscn` |
-| NPC stub | `scenes/npc/npc_stub.tscn` |
-| UI quest / dialog / listening | `scenes/ui/` |
-| Manager questów | `scripts/quest/quest_manager.gd` |
-| Hooki mini-gier słuchowych | `scripts/listening/` |
-| Audio bus + szum | `scripts/audio/` |
-| Dane ćwiczeń (JSON stub) | `data/` |
-
-## Następne kroki (lokalnie w Godot)
-
-1. Smoke test F5 + kolizje / kamera.
-2. Podmienić capsule na model dziewczynki.
-3. Dodać nagrania mowy / środowiska do `assets/audio/`.
-4. Podpiąć pełną pulę słów/zdań z web `src/lib/exerciseData.js` → `data/`.
-5. (Opcjonalnie) Self-hosted Cursor worker z Godotem na PATH do dalszej pracy agentów.
+| Polana | `scenes/world/world_stub.tscn` |
+| Gracz | `scenes/player/player_girl.tscn` |
+| NPC | `scenes/npc/npc_stub.tscn` |
+| UI | `scenes/ui/` |
+| Mini-gry | `scripts/listening/` |
+| Szum proceduralny | `scripts/audio/noise_player.gd` |
+| Dane | `data/*.json` |
 
 ## Zastrzeżenie kliniczne
 
