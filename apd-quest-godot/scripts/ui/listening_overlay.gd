@@ -129,7 +129,7 @@ func _rebuild_choices(choices: Array) -> void:
 		btn.texture_normal = IconFactory.get_icon(icon)
 		btn.ignore_texture_size = true
 		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		btn.custom_minimum_size = Vector2(120, 120)
+		btn.custom_minimum_size = Vector2(132, 132)
 		btn.disabled = used
 		btn.modulate = Color(1, 1, 1, 0.35) if used else Color.WHITE
 		var captured := id

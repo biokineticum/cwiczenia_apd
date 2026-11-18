@@ -31,8 +31,8 @@ func _initialize() -> void:
 	ws.call("_build_sequence")
 	var seq: PackedStringArray = ws.get("sequence")
 	print("[smoke] word_sequence sample ids: %s (n=%d)" % [", ".join(seq), seq.size()])
-	if seq.is_empty() or seq.size() < 2 or seq.size() > 3:
-		push_error("[smoke] zła długość sekwencji (oczekiwane 2–3)")
+	if seq.is_empty() or seq.size() != 4:
+		push_error("[smoke] zła długość sekwencji (oczekiwane 4)")
 		ok = false
 
 	var sn: Node = (load("res://scripts/listening/speech_in_noise.gd") as GDScript).new()
@@ -74,8 +74,8 @@ func _check_word_pool() -> bool:
 	var data = JSON.parse_string(FileAccess.get_file_as_string(path))
 	if typeof(data) != TYPE_DICTIONARY:
 		return false
-	if int(data.get("default_length_min", 99)) > 2:
-		push_error("[smoke] length_min powinno być 2")
+	if int(data.get("default_length_min", 0)) != 4 or int(data.get("default_length_max", 0)) != 4:
+		push_error("[smoke] default length powinno być 4")
 		return false
 	var words = data.get("words", [])
 	if words.is_empty() or typeof(words[0]) != TYPE_DICTIONARY:

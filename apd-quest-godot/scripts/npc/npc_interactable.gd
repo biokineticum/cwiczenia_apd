@@ -16,8 +16,9 @@ func _ready() -> void:
 	var area: Area3D = $InteractionArea
 	area.body_entered.connect(_on_body_entered)
 	area.body_exited.connect(_on_body_exited)
+	# Bez napisów imion nad NPC — dziecko nie czyta; rodzic wie kto jest kto z wyglądu.
 	if has_node("NameLabel"):
-		$NameLabel.text = display_name
+		$NameLabel.visible = false
 	_rebuild_visual()
 
 
@@ -62,7 +63,7 @@ func _try_talk() -> void:
 	var q: QuestDefinition = QuestManager.get_quest_for_npc(npc_id)
 	if q == null:
 		print("[%s] Brak questu dla npc_id=%s" % [display_name, npc_id])
-		get_tree().call_group("hud", "set_hint", "%s nie ma teraz zadania." % display_name)
+		get_tree().call_group("hud", "set_hint", "")
 		return
 	ProgressStore.unlock_badge("met_%s" % npc_id)
 	QuestManager.offer_quest(q.id)
@@ -71,19 +72,12 @@ func _try_talk() -> void:
 func _on_body_entered(body: Node) -> void:
 	if body.is_in_group("player"):
 		_player_near = true
-		get_tree().call_group(
-			"hud",
-			"set_hint",
-			"E — porozmawiaj z %s" % display_name
-		)
+		# Ikona rozmowy (bez tekstu do czytania).
+		get_tree().call_group("hud", "set_hint", "porozmawiaj")
 		print("[%s] Podchodzisz — naciśnij E, by porozmawiać." % display_name)
 
 
 func _on_body_exited(body: Node) -> void:
 	if body.is_in_group("player"):
 		_player_near = false
-		get_tree().call_group(
-			"hud",
-			"set_hint",
-			"WASD — ruch · PPM+mysz — kamera · E — rozmowa"
-		)
+		get_tree().call_group("hud", "set_hint", "")

@@ -20,7 +20,8 @@ func _ready() -> void:
 
 func open_with(stimulus: String, blurb: String, noise_on: bool) -> void:
 	stimulus_label.text = "Bodziec: %s" % stimulus
-	blurb_label.text = blurb if blurb != "" else "Trening wspomagający — nie diagnostyka. Poziom szumu jest względny (nie kliniczny SNR)."
+	var base := blurb if blurb != "" else "Trening wspomagający — nie diagnostyka. Poziom szumu jest względny (nie kliniczny SNR)."
+	blurb_label.text = "%s\n\nEcho: domyślnie 4 symbole (dziecko nie czyta — instrukcje głosem)." % base
 	noise_toggle.set_pressed_no_signal(noise_on)
 	noise_toggle.text = "Szum (względny poziom)"
 	visible = true

@@ -4,7 +4,7 @@ Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy 
 
 To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudności**, nie kliniczny SNR.
 
-**Dziecko (~5 lat, nie czyta):** odpowiedzi = **ikony / obrazki** (tap). Tekst bodźca i szum → **tryb rodzica** (przytrzymaj ikonę dorosłego ~1,5 s).
+**Dziecko (~5 lat, nie czyta):** odpowiedzi = **ikony / obrazki** (tap). Instrukcje = **głos (TTS)**, nie napisy. Echo: domyślnie **4 symbole**. Tekst bodźca i szum → **tryb rodzica** (przytrzymaj ikonę dorosłego ~1,5 s; w dialogu — ikona rodzica pokazuje tekst).
 
 ## Wymagania
 

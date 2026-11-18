@@ -117,6 +117,29 @@ static func _draw_icon(icon_id: String) -> ImageTexture:
 		"undo":
 			_ellipse(img, 64, 64, 28, 28, Color(0.85, 0.75, 0.55))
 			_tri(img, Vector2(40, 64), Vector2(58, 48), Vector2(58, 80), Color(0.45, 0.3, 0.15))
+		"play":
+			_circle(img, 64, 64, 40, Color(0.35, 0.75, 0.45))
+			_tri(img, Vector2(52, 40), Vector2(92, 64), Vector2(52, 88), Color(1, 1, 1))
+		"close":
+			_circle(img, 64, 64, 40, Color(0.85, 0.45, 0.4))
+			for i in 40:
+				var t := float(i) / 40.0
+				_circle(img, int(lerp(40.0, 88.0, t)), int(lerp(40.0, 88.0, t)), 5, Color(1, 1, 1))
+				_circle(img, int(lerp(88.0, 40.0, t)), int(lerp(40.0, 88.0, t)), 5, Color(1, 1, 1))
+		"check":
+			_circle(img, 64, 64, 40, Color(0.35, 0.7, 0.5))
+			for i in 18:
+				var t := float(i) / 18.0
+				_circle(img, int(lerp(38.0, 56.0, t)), int(lerp(66.0, 88.0, t)), 5, Color(1, 1, 1))
+			for i in 28:
+				var t := float(i) / 28.0
+				_circle(img, int(lerp(56.0, 92.0, t)), int(lerp(88.0, 40.0, t)), 5, Color(1, 1, 1))
+		"talk":
+			_ellipse(img, 64, 58, 36, 28, Color(0.95, 0.9, 0.75))
+			_tri(img, Vector2(48, 78), Vector2(64, 100), Vector2(72, 78), Color(0.95, 0.9, 0.75))
+			_circle(img, 50, 56, 5, Color(0.4, 0.35, 0.3))
+			_circle(img, 64, 56, 5, Color(0.4, 0.35, 0.3))
+			_circle(img, 78, 56, 5, Color(0.4, 0.35, 0.3))
 		_:
 			_circle(img, 64, 64, 30, Color(0.7, 0.7, 0.75))
 			_circle(img, 64, 64, 12, Color(0.45, 0.45, 0.5))

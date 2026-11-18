@@ -1,7 +1,8 @@
 {
-  "note": "Pula dla 5-latki: konkretne słowa + icon_id. label_pl tylko dla rodzica. Start N=2–3.",
-  "default_length_min": 2,
-  "default_length_max": 3,
+  "note": "Pula dla 5-latki: konkretne słowa + icon_id. label_pl tylko dla rodzica. Domyślnie N=4; rodzic może obniżyć w overlay.",
+  "default_length_min": 4,
+  "default_length_max": 4,
+  "parent_min_length": 2,
   "parent_max_length": 4,
   "words": [
     {
