@@ -1,0 +1,12 @@
+{
+  "disclaimer": "Poziom szumu jest względny (trudność), nie kliniczny SNR w dB.",
+  "types": [
+    { "id": "white", "name": "Biały szum", "desc": "Równomierne widmo" },
+    { "id": "pink", "name": "Różowy szum", "desc": "Naturalniejszy" },
+    { "id": "brown", "name": "Brązowy szum", "desc": "Głębsze tony" },
+    { "id": "babble", "name": "Gwar (babble)", "desc": "Głosy w tle (placeholder)" }
+  ],
+  "default_enabled": false,
+  "default_type": "pink",
+  "default_relative_level": 0.35
+}

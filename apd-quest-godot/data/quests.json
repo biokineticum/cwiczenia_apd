@@ -1,0 +1,34 @@
+{
+  "quests": [
+    {
+      "id": "npc_echo_word_seq",
+      "title": "Zaklęcie Echo",
+      "npc_id": "npc_echo",
+      "exercise_type": "word_sequence",
+      "dialog_offer": [
+        "Cześć! Jestem Echo.",
+        "Pomóż mi zapamiętać magiczne słowa — powtórz je w tej samej kolejności."
+      ],
+      "dialog_done": [
+        "Świetnie! Zaklęcie znów działa. Dziękuję!"
+      ],
+      "noise_optional": true,
+      "reward_points": 20
+    },
+    {
+      "id": "npc_storm_speech",
+      "title": "Wiadomość w burzy",
+      "npc_id": "npc_storm",
+      "exercise_type": "speech_in_noise",
+      "dialog_offer": [
+        "Burza szumi, a ja mam ważną wiadomość.",
+        "Posłuchaj uważnie i wybierz, co usłyszałaś."
+      ],
+      "dialog_done": [
+        "Udało się — wiadomość dotarła!"
+      ],
+      "noise_optional": true,
+      "reward_points": 25
+    }
+  ]
+}

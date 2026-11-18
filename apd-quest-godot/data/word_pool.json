@@ -1,0 +1,10 @@
+{
+  "note": "Stub puli słów PL (w web ~200+). Długość sekwencji questu: 3–5.",
+  "default_length_min": 3,
+  "default_length_max": 5,
+  "words": [
+    "dom", "las", "rzeka", "most", "kwiat", "ptak", "pies", "kot",
+    "chleb", "mleko", "jabłko", "woda", "piłka", "książka", "okno",
+    "drzwi", "słońce", "deszcz", "ścieżka", "latarnia", "mostek", "łąka"
+  ]
+}
