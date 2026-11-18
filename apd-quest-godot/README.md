@@ -4,7 +4,7 @@ Przyjazna przygoda 3D: dziewczynka zwiedza **Polanę Echo** i wykonuje **questy 
 
 To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudności**, nie kliniczny SNR.
 
-**Dziecko (~5 lat, nie czyta):** odpowiedzi = **ikony / obrazki** (tap). Instrukcje = **głos (TTS)**, nie napisy. Echo: domyślnie **4 symbole**. Tekst bodźca i szum → **tryb rodzica** (przytrzymaj ikonę dorosłego ~1,5 s; w dialogu — ikona rodzica pokazuje tekst).
+**Dziecko (~5 lat, nie czyta):** instrukcje = **głos (TTS)**. Echo: domyślnie **4 symbole** na **planszy 3D** — dziewczynka **chodzi** w przedmioty i wkłada je do **kółek z cyframi 1–4** (bez klikania siatki UI). Burza: wskazanie obrazka. Tekst bodźca / szum → **tryb rodzica**.
 
 ## Wymagania
 
@@ -23,8 +23,9 @@ Bez otwierania edytora Godot:
    `Godot_*.exe --path <ten-folder>`.
 4. Jeśli Godot nie jest zainstalowany — bat wypisze jasny komunikat.
 
-Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → **Zaczynam!**  
-Mini-gra: duże kafelki-ikony; **ucho** = odsłuchaj; **strzałka wstecz** = cofnij; **długie przytrzymanie ikony rodzica** = tekst + szum.
+Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → ikona play (start).  
+**Echo (3D):** po odsłuchu — **wejść w symbol**, potem **wejść w świecące kółko z cyfrą** (kolejno 1→2→3→4). Bez myszki na siatce.  
+**Burza:** duże obrazki (tap). Rodzic: long-press ikony dorosłego.
 
 ### Edytor (opcjonalnie, F5)
 

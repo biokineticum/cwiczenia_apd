@@ -12,7 +12,7 @@
       "dialog_done": [
         "Udało się! Zaklęcie znów świeci."
       ],
-      "parent_blurb": "Ćwiczenie kolejności słuchowej (trening wspomagający, nie diagnostyka). Domyślnie 4 symbole; rodzic może obniżyć trudność.",
+      "parent_blurb": "Ćwiczenie kolejności słuchowej na planszy 3D: dziecko chodzi w symbole i wkłada je do kółek 1–4 (bez siatki UI). Trening wspomagający, nie diagnostyka.",
       "noise_optional": true,
       "reward_points": 20
     },
