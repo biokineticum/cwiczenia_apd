@@ -24,7 +24,7 @@ Bez otwierania edytora Godot:
 4. Jeśli Godot nie jest zainstalowany — bat wypisze jasny komunikat.
 
 Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → ikona play (start).  
-**Echo (3D):** po odsłuchu — **wejść w symbol**, potem **wejść w świecące kółko z cyfrą** (kolejno 1→2→3→4). Bez myszki na siatce.  
+**Echo (3D):** 1 rząd symboli (Δ≈2,8 m) + 1 linia kółek 1–4 (Δ≈2,5 m), odstęp rzędów ≈3 m. Area < mesh. Na planszy chód wolniejszy. **Wejdź w symbol → wejdź w świecące kółko.**  
 **Burza:** duże obrazki (tap). Rodzic: long-press ikony dorosłego.
 
 ### Edytor (opcjonalnie, F5)

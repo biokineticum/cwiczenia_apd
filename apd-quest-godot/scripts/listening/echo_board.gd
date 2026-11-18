@@ -1,6 +1,6 @@
 extends Node3D
-## Plansza Echo 3D: dziewczynka chodzi, podnosi symbole (wejście w obiekt)
-## i wkłada je do kółek z cyframi 1–4 w kolejności. Bez klikania siatki UI.
+## Echo 3D — layout wg konsultacji odbioru fizyki:
+## 1 rząd propów + 1 linia slotów 1–4; minima spacing; wolniejszy chód w answer.
 
 signal arrangement_complete(word_ids: PackedStringArray)
 signal arrangement_changed(word_ids: PackedStringArray)
@@ -9,12 +9,25 @@ const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 const EchoPropScript = preload("res://scripts/listening/echo_prop.gd")
 const EchoSlotScript = preload("res://scripts/listening/echo_slot.gd")
 
-var _slots: Array = [] # EchoSlot
-var _props: Array = [] # EchoProp
+## Minima z konsultacji (środek–środek, metry świata).
+const PICKUP_SPACING := 2.8
+const SLOT_SPACING := 2.5
+const ROW_GAP := 3.0 # pickup ↔ slot
+const SLOT_Z := -1.6
+const PROP_Z := SLOT_Z + ROW_GAP # +3.0 m
+const ANSWER_SPEED_MUL := 0.6 # ×0.55–0.7 eksploracji
+const PICK_COOLDOWN_MS := 500
+
+var _slots: Array = []
+var _props: Array = []
 var _carry: Area3D = null
 var _player: Node3D = null
 var _active: bool = false
 var _speech: Node = null
+var _pick_ready_ms: int = 0
+var _saved_player_speed: float = -1.0
+var _saved_player_accel: float = -1.0
+var _overlap_pulse_ms: int = 0
 
 
 func setup(
@@ -29,48 +42,60 @@ func setup(
 	_props.clear()
 	_carry = null
 	_active = true
+	_pick_ready_ms = 0
 	position = origin
 	_player = _find_player()
-	# Platforma
+	_apply_answer_speed(true)
+	var n := sequence_ids.size()
+	var line_w := maxf(PICKUP_SPACING, SLOT_SPACING) * float(maxi(n - 1, 1))
+	var width := line_w + 4.0
+	var depth := ROW_GAP + 4.0
 	MeshFactory.add_mesh(
 		self,
-		MeshFactory.box(Vector3(7.2, 0.08, 4.2)),
+		MeshFactory.box(Vector3(width, 0.06, depth)),
 		MeshFactory.mat(Color(0.78, 0.62, 0.4), 0.92),
-		Vector3(0, 0.02, 0.3)
+		Vector3(0, 0.02, (PROP_Z + SLOT_Z) * 0.5)
 	)
-	# Sloty 1–4 w rzędzie (cyfry znane dziecku)
-	var n := sequence_ids.size()
-	var start_x := -1.5 * float(n - 1) / 2.0
+	# EchoSlots — jedna linia 1→4
+	var slots_root := Node3D.new()
+	slots_root.name = "EchoSlots"
+	add_child(slots_root)
+	var slot_start := -0.5 * SLOT_SPACING * float(n - 1)
 	for i in n:
 		var slot: Area3D = EchoSlotScript.new()
-		add_child(slot)
-		slot.setup(i, Vector3(start_x + float(i) * 1.5, 0.0, -0.6))
+		slots_root.add_child(slot)
+		slot.setup(i, Vector3(slot_start + float(i) * SLOT_SPACING, 0.0, SLOT_Z))
 		slot.place_requested.connect(_on_slot_place)
 		_slots.append(slot)
-	# Symbole rozrzucone przed slotami — wejdź w nie, by podnieść
-	var positions: Array[Vector3] = [
-		Vector3(-2.4, 0, 1.4),
-		Vector3(-0.8, 0, 1.7),
-		Vector3(0.8, 0, 1.5),
-		Vector3(2.4, 0, 1.6),
-		Vector3(-1.6, 0, 2.4),
-		Vector3(1.6, 0, 2.3),
-	]
-	positions.shuffle()
-	for i in sequence_ids.size():
+	# EchoPickups — jeden rząd, X przetasowane względem sekwencji
+	var pickups_root := Node3D.new()
+	pickups_root.name = "EchoPickups"
+	add_child(pickups_root)
+	var prop_xs: Array = []
+	var prop_start := -0.5 * PICKUP_SPACING * float(n - 1)
+	for i in n:
+		prop_xs.append(prop_start + float(i) * PICKUP_SPACING)
+	prop_xs.shuffle()
+	for i in n:
 		var prop: Area3D = EchoPropScript.new()
-		add_child(prop)
-		var pos: Vector3 = positions[i % positions.size()]
+		pickups_root.add_child(prop)
+		var pos := Vector3(float(prop_xs[i]), 0.0, PROP_Z)
 		prop.setup(str(sequence_ids[i]), str(sequence_icons[i]), pos)
 		prop.picked.connect(_on_prop_picked)
 		_props.append(prop)
+	_assert_no_area_overlap()
 	_refresh_highlights()
-	print("[EchoBoard] gotowa — %d slotów, chodź i układaj" % n)
+	_set_props_pickable(true)
+	print(
+		"[EchoBoard] pickups Δ=%.1fm @z=%.1f | slots Δ=%.1fm @z=%.1f | row_gap=%.1fm | speed×%.2f"
+		% [PICKUP_SPACING, PROP_Z, SLOT_SPACING, SLOT_Z, ROW_GAP, ANSWER_SPEED_MUL]
+	)
 
 
 func teardown() -> void:
 	_active = false
 	_carry = null
+	_apply_answer_speed(false)
 	_drop_carry_visual()
 	queue_free()
 
@@ -89,7 +114,6 @@ func is_complete() -> bool:
 	return true
 
 
-## Playtest / smoke: automatycznie ułóż sekwencję bez chodzenia.
 func force_arrange(sequence_ids: PackedStringArray) -> void:
 	if not _active:
 		return
@@ -113,13 +137,18 @@ func force_arrange(sequence_ids: PackedStringArray) -> void:
 func reset_board() -> void:
 	_drop_carry_visual()
 	_carry = null
+	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
 	for s in _slots:
 		s.filled_word_id = ""
 		s.set_highlight(false)
 		for c in s.get_children():
 			if c is Area3D and c.has_method("reset_home"):
 				s.remove_child(c)
-				add_child(c)
+				var pickups: Node = get_node_or_null("EchoPickups")
+				if pickups:
+					pickups.add_child(c)
+				else:
+					add_child(c)
 				c.placed = false
 				c.carried = false
 				c.monitoring = true
@@ -130,11 +159,14 @@ func reset_board() -> void:
 		var prop: Area3D = p as Area3D
 		if prop == null:
 			continue
-		if prop.get_parent() != self:
+		var want_parent: Node = get_node_or_null("EchoPickups")
+		if want_parent == null:
+			want_parent = self
+		if prop.get_parent() != want_parent:
 			var par: Node = prop.get_parent()
 			if par:
 				par.remove_child(prop)
-			add_child(prop)
+			want_parent.add_child(prop)
 		prop.placed = false
 		prop.carried = false
 		prop.monitoring = true
@@ -142,22 +174,32 @@ func reset_board() -> void:
 		prop.scale = Vector3.ONE
 		prop.position = prop._home
 	_refresh_highlights()
+	_set_props_pickable(true)
 
 
 func _on_prop_picked(prop: Area3D) -> void:
 	if not _active or prop.placed:
 		return
+	if Time.get_ticks_msec() < _pick_ready_ms:
+		return
 	if _carry != null:
-		# Już niesie — najpierw włóż do kółka.
 		if _speech:
 			_speech.play_text("Najpierw włóż to do kółka z cyfrą.")
+		return
+	# Ambiguous: dwa Area naraz → nie bierz żadnego (konsultacja §6).
+	var near_count := _count_props_overlapping_player()
+	if near_count >= 2:
+		_pulse_ambiguous()
 		return
 	_carry = prop
 	prop.carried = true
 	prop.monitoring = false
+	_set_props_pickable(false)
 	_attach_to_player(prop)
+	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
+	_refresh_highlights()
 	if _speech:
-		_speech.play_text("Dobrze. Teraz do kółka numer %d." % _next_digit())
+		_speech.play_text("Dobrze. Idź do kółka numer %d." % _next_digit())
 
 
 func _on_slot_place(slot: Area3D) -> void:
@@ -165,10 +207,11 @@ func _on_slot_place(slot: Area3D) -> void:
 		return
 	if not slot.is_empty():
 		return
-	# Wypełniaj po kolei 1 → 2 → 3 → 4
 	var expected := _next_slot_index()
 	if slot.slot_index != expected:
-		if _speech:
+		# Soft: bez place, bez resetu sekwencji od ocierania.
+		if _speech and Time.get_ticks_msec() > _overlap_pulse_ms:
+			_overlap_pulse_ms = Time.get_ticks_msec() + 1200
 			_speech.play_text("To kółko numer %d. Idź do numeru %d." % [slot.digit, expected + 1])
 		return
 	var prop := _carry
@@ -177,12 +220,49 @@ func _on_slot_place(slot: Area3D) -> void:
 	slot.place_prop(prop)
 	arrangement_changed.emit(get_placed_ids())
 	_refresh_highlights()
+	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
 	if is_complete():
+		_set_props_pickable(false)
 		if _speech:
 			_speech.play_text("Brawo, wszystkie na miejscu.")
 		arrangement_complete.emit(get_placed_ids())
-	elif _speech:
-		_speech.play_text("Teraz następny.")
+	else:
+		_set_props_pickable(true)
+		if _speech:
+			_speech.play_text("Teraz następny obrazek.")
+
+
+func _count_props_overlapping_player() -> int:
+	if _player == null:
+		return 0
+	var count := 0
+	var ppos := _player.global_position
+	for p in _props:
+		var prop: Area3D = p as Area3D
+		if prop == null or prop.placed or prop.carried or not prop.monitoring:
+			continue
+		var d := Vector2(prop.global_position.x - ppos.x, prop.global_position.z - ppos.z).length()
+		# PICK_RADIUS 0.35 + capsule ~0.35
+		if d <= 0.7:
+			count += 1
+	return count
+
+
+func _pulse_ambiguous() -> void:
+	if Time.get_ticks_msec() < _overlap_pulse_ms:
+		return
+	_overlap_pulse_ms = Time.get_ticks_msec() + 900
+	# Soft feedback — bez auto-wyboru (konsultacja §6).
+	if _speech:
+		_speech.play_text("Wybierz jeden obrazek.")
+
+
+func _set_props_pickable(enabled: bool) -> void:
+	for p in _props:
+		var prop: Area3D = p as Area3D
+		if prop == null or prop.placed or prop.carried:
+			continue
+		prop.monitoring = enabled
 
 
 func _next_slot_index() -> int:
@@ -199,7 +279,49 @@ func _next_digit() -> int:
 func _refresh_highlights() -> void:
 	var next_i := _next_slot_index()
 	for i in _slots.size():
-		_slots[i].set_highlight(i == next_i and _slots[i].is_empty())
+		var is_next: bool = (i == next_i and _slots[i].is_empty())
+		_slots[i].set_highlight(is_next)
+		# Tylko aktywne kółko + gdy niesie prop.
+		_slots[i].monitoring = is_next and _carry != null
+
+
+func _apply_answer_speed(enable: bool) -> void:
+	if _player == null:
+		_player = _find_player()
+	if _player == null:
+		return
+	if enable:
+		if _saved_player_speed < 0.0:
+			_saved_player_speed = float(_player.get("speed"))
+			_saved_player_accel = float(_player.get("acceleration"))
+		_player.set("speed", _saved_player_speed * ANSWER_SPEED_MUL)
+		_player.set("acceleration", maxf(8.0, _saved_player_accel * 0.7))
+	else:
+		if _saved_player_speed >= 0.0:
+			_player.set("speed", _saved_player_speed)
+			_player.set("acceleration", _saved_player_accel)
+		_saved_player_speed = -1.0
+		_saved_player_accel = -1.0
+
+
+func _assert_no_area_overlap() -> void:
+	# Debug: żadne dwa Area Echo nie powinny się przecinać w XZ.
+	var centers: Array = []
+	var radii: Array = []
+	for p in _props:
+		centers.append((p as Node3D).position)
+		radii.append(0.35)
+	for s in _slots:
+		centers.append((s as Node3D).position)
+		radii.append(0.38)
+	for i in centers.size():
+		for j in range(i + 1, centers.size()):
+			var a: Vector3 = centers[i]
+			var b: Vector3 = centers[j]
+			var d := Vector2(a.x - b.x, a.z - b.z).length()
+			var need: float = float(radii[i]) + float(radii[j])
+			if d < need:
+				push_warning("[EchoBoard] Area overlap XZ d=%.2f need≥%.2f (i=%d j=%d)" % [d, need, i, j])
 
 
 func _attach_to_player(prop: Area3D) -> void:
@@ -226,7 +348,11 @@ func _drop_carry_visual() -> void:
 		return
 	var prop := _carry
 	_detach_from_player(prop)
-	add_child(prop)
+	var pickups: Node = get_node_or_null("EchoPickups")
+	if pickups:
+		pickups.add_child(prop)
+	else:
+		add_child(prop)
 	prop.carried = false
 	prop.monitoring = true
 	prop.position = prop._home
@@ -247,3 +373,7 @@ func _find_player() -> Node3D:
 func _clear_children() -> void:
 	for c in get_children():
 		c.queue_free()
+
+
+func _exit_tree() -> void:
+	_apply_answer_speed(false)
