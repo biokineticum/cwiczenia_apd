@@ -8,17 +8,30 @@ To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudno
 
 ## Wymagania
 
-- **Godot 4.3+** (testowane na **4.7.2** Forward+), Windows OK.
+- **Godot 4.3+** (testowane na **4.7.2** Forward+), Windows OK. Preferuj wersję **standard** (nie .NET/mono).
 - Polski TTS (SAPI) zalecany do odsłuchu; bez TTS dziecko i tak nie dostaje napisów — tylko ikona ucha.
 
-## Jak uruchomić (Dariusz) — F5
+## Jak uruchomić — `run.bat` (zalecane)
 
-1. Zaktualizuj repo `cwiczenia_apd` i checkout brancha PR (lub `main` po merge).
-2. Uruchom **Godot 4** → **Import** / **Open** → folder `apd-quest-godot/` (`project.godot`).
-3. Naciśnij **F5**.
-4. Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → **Zaczynam!**
-5. Mini-gra: duże kafelki-ikony; **ucho** = odsłuchaj; **strzałka wstecz** = cofnij; **długie przytrzymanie ikony rodzica** = tekst + szum.
-6. Po sukcesie: ciepły feedback + punkty + krótki dialog.
+Bez otwierania edytora Godot:
+
+1. `git pull` w repo `cwiczenia_apd` (branch `main`).
+2. Dwukliknij **`apd-quest-godot/run.bat`**  
+   albo z roota repo: **`run-apd-quest.bat`**.
+3. Skrypt sam szuka Godota (PATH, Downloads, typowe foldery) i odpala grę:  
+   `Godot_*.exe --path <ten-folder>`.
+4. Jeśli Godot nie jest zainstalowany — bat wypisze jasny komunikat.
+
+Na polanie: **WASD**, **PPM+mysz**, **E** przy Echo / Burza → **Zaczynam!**  
+Mini-gra: duże kafelki-ikony; **ucho** = odsłuchaj; **strzałka wstecz** = cofnij; **długie przytrzymanie ikony rodzica** = tekst + szum.
+
+### Edytor (opcjonalnie, F5)
+
+1. Godot 4 → **Import** / **Open** → dokładnie folder **`apd-quest-godot/`** (nazwa projektu: **APD Quest**).
+2. **F5**.
+
+**Uwaga:** nie twórz / nie otwieraj zagnieżdżonych pustych projektów w środku (`apd/`, `apd-gra/` itd.).  
+One nie mają `run/main_scene` → błąd *"Can't run project: no main scene defined"* i gra „się nie uruchamia”.
 
 ### Questy
 
