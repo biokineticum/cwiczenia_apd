@@ -91,6 +91,7 @@ export const SENTENCES = [
   'Posprzątaj swój pokój',
 ];
 
+/** Legacy onomatopoeia set kept for reference / future environmental-sound assets. */
 export const SOUNDS_LIBRARY = [
   { name: 'Pies szczeka', sound: 'hau hau hau', image: '🐕' },
   { name: 'Kot miauczy', sound: 'miau miau miau', image: '🐱' },
@@ -134,12 +135,12 @@ export const MODULE_META = {
     },
   },
   soundRecognition: {
-    name: 'Rozpoznawanie dźwięków',
-    description: 'Identyfikacja prostych dźwięków / onomatopei',
+    name: 'Sekwencje słów',
+    description: 'Pamięć słuchowa: 3–5 słów z puli ~200',
     therapeutic: {
-      goal: 'Ćwiczenie różnicowania i pamięci słuchowej',
-      focus: 'Wysłuchaj bodźca i wybierz pasującą opcję',
-      note: 'Wersja startowa oparta o syntezę mowy; nagrania środowiskowe to kolejny etap.',
+      goal: 'Ćwiczenie pamięci sekwencyjnej i uwagi słuchowej',
+      focus: 'Wysłuchaj sekwencji słów i wpisz je w tej samej kolejności',
+      note: 'Trening wspomagający na syntezie mowy; opcjonalny szum tła. Nie jest testem diagnostycznym.',
     },
   },
   lateralization: {

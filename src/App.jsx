@@ -10,20 +10,22 @@ import MobileModuleNav from './components/MobileModuleNav';
 import TherapistHint from './components/TherapistHint';
 import {
   SENTENCES,
-  SOUNDS_LIBRARY,
   AUDIO_MOTOR_COMMANDS,
   NOISE_OPTIONS,
   MODULE_META,
 } from './lib/exerciseData';
+import { pickWordSequence, WORD_SEQUENCE_LENGTHS } from './lib/wordPool';
 import {
   getAudioContext,
   unlockAudio,
   stopAllAudio,
   playNoise,
   speakText,
+  speakWordSequence,
   playTone,
   relativeNoiseGain,
   scoreSpeechAnswer,
+  scoreExactSequence,
 } from './lib/audio';
 import { loadRewards, recordTrial } from './lib/gamification';
 
@@ -86,7 +88,7 @@ const MODULE_ICONS = {
 
 const MODULE_SHORT = {
   speechInNoise: 'Mowa',
-  soundRecognition: 'Dźwięki',
+  soundRecognition: 'Słowa',
   lateralization: 'L/P',
   audioMotor: 'Ruch',
 };
@@ -100,6 +102,8 @@ function TreningAPD() {
   const [volumeCalibrated, setVolumeCalibrated] = useState(false);
   const [manualSNR, setManualSNR] = useState(10);
   const [useManualSNR, setUseManualSNR] = useState(false);
+  const [noiseEnabled, setNoiseEnabled] = useState(false);
+  const [noiseType, setNoiseType] = useState('white');
   const [hideMotorText, setHideMotorText] = useState(false);
 
   const [adaptiveState, setAdaptiveState] = useState({
@@ -113,14 +117,14 @@ function TreningAPD() {
   const [speechInNoiseState, setSpeechInNoiseState] = useState({
     currentSentence: '',
     sentenceWords: [],
-    noiseType: 'white',
     userInput: '',
   });
 
   const [soundRecognitionState, setSoundRecognitionState] = useState({
-    options: [],
-    correctSound: '',
-    noiseType: 'white',
+    targetWords: [],
+    userInput: '',
+    sequenceLength: 3,
+    lengthMode: 'fixed', // 'fixed' | 'random'
   });
 
   const [lateralizationState, setLateralizationState] = useState({
@@ -140,6 +144,7 @@ function TreningAPD() {
   const [feedback, setFeedback] = useState({ kind: null, message: '' });
   const [newBadges, setNewBadges] = useState([]);
   const digitTimersRef = useRef([]);
+  const wordTimersRef = useRef([]);
 
   useEffect(() => {
     if (currentView !== 'home') return undefined;
@@ -153,6 +158,7 @@ function TreningAPD() {
   useEffect(() => () => {
     stopAllAudio();
     digitTimersRef.current.forEach(clearTimeout);
+    wordTimersRef.current.forEach(clearTimeout);
   }, []);
 
   const showFeedback = useCallback((kind, message) => {
@@ -236,39 +242,69 @@ function TreningAPD() {
 
   const effectiveSNR = useManualSNR ? manualSNR : adaptiveState.currentSNR;
 
-  const playParallelChannelsTest = useCallback(async (noiseType, speechText, snr = 10) => {
-    await unlockAudio();
-    stopAllAudio();
-    const ctx = getAudioContext();
-    if (!ctx) return;
+  const overlayNoise = useCallback(
+    (ctx, durationSec, scale = 0.5) => {
+      if (!noiseEnabled || !ctx) return null;
+      return playNoise(ctx, noiseType, durationSec, relativeNoiseGain(effectiveSNR, scale));
+    },
+    [noiseEnabled, noiseType, effectiveSNR]
+  );
 
-    const noiseLevel = relativeNoiseGain(snr, 0.5);
-    playNoise(ctx, noiseType, 10, noiseLevel);
+  const playSpeechStimulus = useCallback(
+    async (speechText) => {
+      await unlockAudio();
+      stopAllAudio();
+      const ctx = getAudioContext();
+      if (!ctx) return;
 
-    const speechDelay = 2000 + Math.random() * 500;
-    setTimeout(() => {
-      speakText(speechText, { rate: 0.8, volume: 0.75 });
-    }, speechDelay);
-  }, []);
+      const withNoise = noiseEnabled;
+      if (withNoise) {
+        overlayNoise(ctx, 10, 0.5);
+      }
+      const speechDelay = withNoise ? 2000 + Math.random() * 500 : 200;
+      const t = setTimeout(() => {
+        speakText(speechText, { rate: 0.8, volume: 0.75 });
+      }, speechDelay);
+      wordTimersRef.current.push(t);
+    },
+    [noiseEnabled, overlayNoise]
+  );
 
-  const playSoundWithNoise = useCallback(async (soundText, noiseType, snr = 15) => {
-    await unlockAudio();
-    stopAllAudio();
-    const ctx = getAudioContext();
-    if (!ctx) return;
+  const playWordSequenceStimulus = useCallback(
+    async (words) => {
+      await unlockAudio();
+      stopAllAudio();
+      wordTimersRef.current.forEach(clearTimeout);
+      wordTimersRef.current = [];
 
-    playNoise(ctx, noiseType, 8, relativeNoiseGain(snr, 0.4));
-    setTimeout(() => {
-      speakText(soundText, { rate: 0.7, volume: 0.8 });
-    }, 1500);
-  }, []);
+      const ctx = getAudioContext();
+      if (!ctx) return;
 
-  const playWithPanning = useCallback(async (frequency, pan = 0, duration = 1000) => {
-    await unlockAudio();
-    const ctx = getAudioContext();
-    if (!ctx) return;
-    playTone(ctx, frequency, pan, duration);
-  }, []);
+      const approxDuration = Math.max(8, words.length * 2.2);
+      if (noiseEnabled) {
+        overlayNoise(ctx, approxDuration, 0.4);
+      }
+      const startDelay = noiseEnabled ? 1200 : 150;
+      const t = setTimeout(() => {
+        speakWordSequence(words, { rate: 0.75, volume: 0.85, gapMs: 450 });
+      }, startDelay);
+      wordTimersRef.current.push(t);
+    },
+    [noiseEnabled, overlayNoise]
+  );
+
+  const playWithPanning = useCallback(
+    async (frequency, pan = 0, duration = 1000) => {
+      await unlockAudio();
+      const ctx = getAudioContext();
+      if (!ctx) return;
+      if (noiseEnabled) {
+        overlayNoise(ctx, Math.max(2, duration / 1000 + 0.5), 0.35);
+      }
+      playTone(ctx, frequency, pan, duration);
+    },
+    [noiseEnabled, overlayNoise]
+  );
 
   const startSpeechInNoise = useCallback(async () => {
     await unlockAudio();
@@ -280,8 +316,8 @@ function TreningAPD() {
       sentenceWords: words,
       userInput: '',
     }));
-    playParallelChannelsTest(speechInNoiseState.noiseType, sentence, effectiveSNR);
-  }, [playParallelChannelsTest, speechInNoiseState.noiseType, effectiveSNR]);
+    playSpeechStimulus(sentence);
+  }, [playSpeechStimulus]);
 
   const checkSpeechAnswer = useCallback(() => {
     const { isCorrect } = scoreSpeechAnswer(
@@ -298,21 +334,35 @@ function TreningAPD() {
     }));
   }, [speechInNoiseState, updateAdaptive, applyTrialResult]);
 
-  const startSoundRecognition = useCallback(async () => {
+  const startWordSequence = useCallback(async () => {
     await unlockAudio();
-    const correctIndex = Math.floor(Math.random() * SOUNDS_LIBRARY.length);
-    const correct = SOUNDS_LIBRARY[correctIndex];
-    const shuffled = [...SOUNDS_LIBRARY].sort(() => Math.random() - 0.5).slice(0, 4);
-    if (!shuffled.find((s) => s.name === correct.name)) {
-      shuffled[0] = correct;
-    }
+    const length =
+      soundRecognitionState.lengthMode === 'random'
+        ? WORD_SEQUENCE_LENGTHS[Math.floor(Math.random() * WORD_SEQUENCE_LENGTHS.length)]
+        : soundRecognitionState.sequenceLength;
+    const targetWords = pickWordSequence(length);
     setSoundRecognitionState((prev) => ({
       ...prev,
-      options: shuffled,
-      correctSound: correct.name,
+      targetWords,
+      userInput: '',
+      sequenceLength: length,
     }));
-    playSoundWithNoise(correct.sound, soundRecognitionState.noiseType, effectiveSNR);
-  }, [playSoundWithNoise, soundRecognitionState.noiseType, effectiveSNR]);
+    playWordSequenceStimulus(targetWords);
+  }, [soundRecognitionState.lengthMode, soundRecognitionState.sequenceLength, playWordSequenceStimulus]);
+
+  const checkWordSequence = useCallback(() => {
+    const { isCorrect } = scoreExactSequence(
+      soundRecognitionState.userInput,
+      soundRecognitionState.targetWords
+    );
+    updateAdaptive(isCorrect);
+    applyTrialResult(isCorrect, 'soundRecognition');
+    setSoundRecognitionState((prev) => ({
+      ...prev,
+      targetWords: [],
+      userInput: '',
+    }));
+  }, [soundRecognitionState, updateAdaptive, applyTrialResult]);
 
   const startSimpleLateralization = useCallback(async () => {
     await unlockAudio();
@@ -338,7 +388,9 @@ function TreningAPD() {
       const ctx = getAudioContext();
       if (!ctx) return;
 
-      playNoise(ctx, 'white', sequence.length * 2, 0.18);
+      if (noiseEnabled) {
+        overlayNoise(ctx, sequence.length * 2, 0.35);
+      }
 
       sequence.forEach((digit, index) => {
         const t = setTimeout(() => {
@@ -356,7 +408,7 @@ function TreningAPD() {
         digitTimersRef.current.push(t);
       });
     },
-    []
+    [noiseEnabled, overlayNoise]
   );
 
   const startDigitSequence = useCallback(async () => {
@@ -469,60 +521,95 @@ function TreningAPD() {
 
               <RewardsBar rewards={rewards} />
 
-              <div className="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-100">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-2">
-                  <h3 className="font-semibold text-slate-800 text-sm sm:text-base">
-                    Poziom szumu (względny)
-                  </h3>
+              <div className="bg-slate-50 rounded-xl p-3 sm:p-4 border border-slate-100 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-slate-800 text-sm sm:text-base">
+                      Szum tła (opcjonalny)
+                    </h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Działa we wszystkich modułach. Wyłączony = czyste ćwiczenie.
+                    </p>
+                  </div>
                   <div className="flex items-center justify-center gap-3">
-                    <span className="text-xs font-medium text-slate-600">AUTO</span>
+                    <span className={`text-xs font-medium ${!noiseEnabled ? 'text-teal-700' : 'text-slate-500'}`}>
+                      WYŁ.
+                    </span>
                     <label className="relative inline-flex items-center cursor-pointer min-h-[44px] min-w-[44px] justify-center">
                       <input
                         type="checkbox"
-                        checked={useManualSNR}
-                        onChange={(e) => setUseManualSNR(e.target.checked)}
+                        checked={noiseEnabled}
+                        onChange={(e) => setNoiseEnabled(e.target.checked)}
                         className="sr-only peer"
-                        aria-label="Przełącz tryb ręczny poziomu szumu"
+                        aria-label="Włącz lub wyłącz szum tła"
                       />
                       <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[11px] after:left-[6px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600" />
                     </label>
-                    <span className="text-xs font-medium text-slate-600">RĘCZNY</span>
+                    <span className={`text-xs font-medium ${noiseEnabled ? 'text-teal-700' : 'text-slate-500'}`}>
+                      WŁ.
+                    </span>
                   </div>
                 </div>
 
-                {useManualSNR ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min="-20"
-                        max="30"
-                        step="0.5"
-                        value={manualSNR}
-                        onChange={(e) => setManualSNR(parseFloat(e.target.value))}
-                        className="flex-1 h-3 accent-teal-600 cursor-pointer"
-                        aria-valuemin={-20}
-                        aria-valuemax={30}
-                        aria-valuenow={manualSNR}
-                        aria-label="Poziom szumu"
-                      />
-                      <span className={`text-base font-bold min-w-[4.5rem] tabular-nums ${getSNRColor(manualSNR)}`}>
-                        {manualSNR.toFixed(1)} dB*
-                      </span>
+                {noiseEnabled ? (
+                  <>
+                    <NoisePicker value={noiseType} onChange={setNoiseType} accent="teal" />
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                      <span className="text-xs font-medium text-slate-600">Poziom trudności (względny)</span>
+                      <div className="flex items-center justify-center gap-3">
+                        <span className="text-xs font-medium text-slate-600">AUTO</span>
+                        <label className="relative inline-flex items-center cursor-pointer min-h-[44px] min-w-[44px] justify-center">
+                          <input
+                            type="checkbox"
+                            checked={useManualSNR}
+                            onChange={(e) => setUseManualSNR(e.target.checked)}
+                            className="sr-only peer"
+                            aria-label="Przełącz tryb ręczny poziomu szumu"
+                          />
+                          <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-teal-400 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[11px] after:left-[6px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-teal-600" />
+                        </label>
+                        <span className="text-xs font-medium text-slate-600">RĘCZNY</span>
+                      </div>
                     </div>
-                    <p className="text-[11px] text-slate-500 text-center">
-                      *Względny poziom szumu względem syntezy mowy — nie kalibrowany SNR kliniczny.
-                    </p>
-                  </div>
+                    {useManualSNR ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min="-20"
+                            max="30"
+                            step="0.5"
+                            value={manualSNR}
+                            onChange={(e) => setManualSNR(parseFloat(e.target.value))}
+                            className="flex-1 h-3 accent-teal-600 cursor-pointer"
+                            aria-valuemin={-20}
+                            aria-valuemax={30}
+                            aria-valuenow={manualSNR}
+                            aria-label="Względny poziom szumu"
+                          />
+                          <span className={`text-base font-bold min-w-[4.5rem] tabular-nums ${getSNRColor(manualSNR)}`}>
+                            {manualSNR.toFixed(1)}*
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 text-center">
+                          *Względny poziom szumu vs TTS — nie kalibrowany SNR kliniczny.
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="text-center">
+                        <span className={`text-lg font-bold tabular-nums ${getSNRColor(adaptiveState.currentSNR)}`}>
+                          Auto: {adaptiveState.currentSNR.toFixed(1)}*
+                        </span>
+                        <p className="text-[11px] text-slate-500 mt-1">
+                          Adaptacja: {adaptiveState.correctStreak} poprawnych · {adaptiveState.reversals} odwróceń
+                        </p>
+                      </div>
+                    )}
+                  </>
                 ) : (
-                  <div className="text-center">
-                    <span className={`text-lg font-bold tabular-nums ${getSNRColor(adaptiveState.currentSNR)}`}>
-                      Auto: {adaptiveState.currentSNR.toFixed(1)} dB*
-                    </span>
-                    <p className="text-[11px] text-slate-500 mt-1">
-                      Adaptacja: {adaptiveState.correctStreak} poprawnych z rzędu · {adaptiveState.reversals} odwróceń
-                    </p>
-                  </div>
+                  <p className="text-sm text-slate-600 text-center py-1">
+                    Szum wyłączony — bodźce bez nakładki.
+                  </p>
                 )}
               </div>
             </div>
@@ -604,14 +691,11 @@ function TreningAPD() {
 
                   {currentModule === 'speechInNoise' && (
                     <section className="bg-emerald-50/80 rounded-2xl p-4 sm:p-5 border border-emerald-100">
-                      <h3 className="text-lg font-semibold text-emerald-900 mb-3">Mowa w szumie</h3>
-                      <NoisePicker
-                        value={speechInNoiseState.noiseType}
-                        onChange={(type) =>
-                          setSpeechInNoiseState((prev) => ({ ...prev, noiseType: type }))
-                        }
-                        accent="emerald"
-                      />
+                      <h3 className="text-lg font-semibold text-emerald-900 mb-2">Mowa w szumie</h3>
+                      <p className="text-xs text-emerald-800 mb-3">
+                        Szum: {noiseEnabled ? `włączony (${noiseType})` : 'wyłączony — czysta mowa'}.
+                        Sterowanie globalne w nagłówku.
+                      </p>
                       {!speechInNoiseState.currentSentence ? (
                         <button
                           type="button"
@@ -646,13 +730,7 @@ function TreningAPD() {
                           <div className="flex flex-col sm:flex-row gap-3">
                             <button
                               type="button"
-                              onClick={() =>
-                                playParallelChannelsTest(
-                                  speechInNoiseState.noiseType,
-                                  speechInNoiseState.currentSentence,
-                                  effectiveSNR
-                                )
-                              }
+                              onClick={() => playSpeechStimulus(speechInNoiseState.currentSentence)}
                               className={`${secondaryBtn} flex-1 bg-sky-600 text-white`}
                             >
                               Powtórz
@@ -676,54 +754,130 @@ function TreningAPD() {
 
                   {currentModule === 'soundRecognition' && (
                     <section className="bg-violet-50/80 rounded-2xl p-4 sm:p-5 border border-violet-100">
-                      <h3 className="text-lg font-semibold text-violet-900 mb-3">
-                        Rozpoznawanie dźwięków
+                      <h3 className="text-lg font-semibold text-violet-900 mb-2">
+                        Sekwencje słów
                       </h3>
-                      <NoisePicker
-                        value={soundRecognitionState.noiseType}
-                        onChange={(type) =>
-                          setSoundRecognitionState((prev) => ({ ...prev, noiseType: type }))
-                        }
-                        accent="violet"
-                      />
-                      {soundRecognitionState.options.length === 0 ? (
-                        <button
-                          type="button"
-                          onClick={startSoundRecognition}
-                          className={`${primaryBtn} bg-violet-600 text-white hover:bg-violet-700`}
-                        >
-                          Odtwórz dźwięk
-                        </button>
-                      ) : (
-                        <div className="space-y-4">
-                          <p className="text-center text-slate-600">Który dźwięk usłyszałeś?</p>
-                          <div className="grid grid-cols-2 gap-3">
-                            {soundRecognitionState.options.map((sound) => (
+                      <p className="text-xs text-violet-800 mb-3">
+                        Pula ~230 polskich słów. Usłysz 3–5 słów i wpisz je w kolejności.
+                        Szum: {noiseEnabled ? 'włączony' : 'wyłączony'}.
+                      </p>
+
+                      <div className="bg-white rounded-xl p-3 mb-4 space-y-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSoundRecognitionState((prev) => ({
+                                ...prev,
+                                lengthMode: 'fixed',
+                              }))
+                            }
+                            className={`min-h-[44px] px-3 rounded-xl text-sm font-medium touch-manipulation ${
+                              soundRecognitionState.lengthMode === 'fixed'
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            Stała długość
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setSoundRecognitionState((prev) => ({
+                                ...prev,
+                                lengthMode: 'random',
+                              }))
+                            }
+                            className={`min-h-[44px] px-3 rounded-xl text-sm font-medium touch-manipulation ${
+                              soundRecognitionState.lengthMode === 'random'
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-slate-100 text-slate-700'
+                            }`}
+                          >
+                            Losowa 3–5
+                          </button>
+                        </div>
+                        {soundRecognitionState.lengthMode === 'fixed' && (
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm text-slate-600">Liczba słów:</span>
+                            {WORD_SEQUENCE_LENGTHS.map((num) => (
                               <button
-                                key={sound.name}
+                                key={num}
                                 type="button"
-                                onClick={() => {
-                                  const isCorrect =
-                                    sound.name === soundRecognitionState.correctSound;
-                                  updateAdaptive(isCorrect);
-                                  applyTrialResult(isCorrect, 'soundRecognition');
+                                onClick={() =>
                                   setSoundRecognitionState((prev) => ({
                                     ...prev,
-                                    options: [],
-                                    correctSound: '',
-                                  }));
-                                }}
-                                className="bg-white p-4 rounded-xl border-2 border-slate-200 min-h-[88px] touch-manipulation active:border-violet-400"
+                                    sequenceLength: num,
+                                  }))
+                                }
+                                className={`min-w-[44px] min-h-[44px] rounded-lg font-semibold touch-manipulation ${
+                                  soundRecognitionState.sequenceLength === num
+                                    ? 'bg-violet-600 text-white'
+                                    : 'bg-slate-100 text-slate-700'
+                                }`}
                               >
-                                <div className="text-3xl mb-1" aria-hidden>
-                                  {sound.image}
-                                </div>
-                                <div className="font-semibold text-sm">{sound.name}</div>
+                                {num}
                               </button>
                             ))}
                           </div>
+                        )}
+                      </div>
+
+                      {soundRecognitionState.targetWords.length === 0 ? (
+                        <button
+                          type="button"
+                          onClick={startWordSequence}
+                          className={`${primaryBtn} bg-violet-600 text-white hover:bg-violet-700`}
+                        >
+                          Odtwórz sekwencję
+                          {soundRecognitionState.lengthMode === 'fixed'
+                            ? ` (${soundRecognitionState.sequenceLength})`
+                            : ' (3–5)'}
+                        </button>
+                      ) : (
+                        <div className="space-y-4">
+                          <label className="block">
+                            <span className="text-sm text-slate-600 mb-2 block">
+                              Wpisz usłyszane słowa w kolejności (oddziel spacją)
+                            </span>
+                            <input
+                              type="text"
+                              value={soundRecognitionState.userInput}
+                              onChange={(e) =>
+                                setSoundRecognitionState((prev) => ({
+                                  ...prev,
+                                  userInput: e.target.value,
+                                }))
+                              }
+                              enterKeyHint="done"
+                              className="w-full min-h-[52px] p-3 border border-slate-300 rounded-xl text-base bg-white"
+                              placeholder="np. dom kot woda"
+                              autoComplete="off"
+                              autoCorrect="off"
+                              autoCapitalize="off"
+                            />
+                          </label>
+                          <div className="flex flex-col sm:flex-row gap-3">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                playWordSequenceStimulus(soundRecognitionState.targetWords)
+                              }
+                              className={`${secondaryBtn} flex-1 bg-sky-600 text-white`}
+                            >
+                              Powtórz
+                            </button>
+                            <button
+                              type="button"
+                              onClick={checkWordSequence}
+                              disabled={!soundRecognitionState.userInput.trim()}
+                              className={`${secondaryBtn} flex-1 bg-violet-600 text-white disabled:bg-slate-300`}
+                            >
+                              Sprawdź
+                            </button>
+                          </div>
                           <TherapistHint>
-                            Prawidłowa odpowiedź: „{soundRecognitionState.correctSound}”
+                            Sekwencja: {soundRecognitionState.targetWords.join(' · ')}
                           </TherapistHint>
                         </div>
                       )}
@@ -735,6 +889,7 @@ function TreningAPD() {
                       <h3 className="text-lg font-semibold text-indigo-900 mb-2">Lateralizacja</h3>
                       <p className="text-xs text-indigo-800 mb-3">
                         Wymagane słuchawki stereo. Na głośniku telefonu L/P nie działa poprawnie.
+                        Szum: {noiseEnabled ? 'włączony (nagłówek)' : 'wyłączony'}.
                       </p>
                       <div className="bg-white rounded-xl p-3 mb-4">
                         <div className="grid grid-cols-2 gap-2">
@@ -909,7 +1064,10 @@ function TreningAPD() {
 
                   {currentModule === 'audioMotor' && (
                     <section className="bg-rose-50/80 rounded-2xl p-4 sm:p-5 border border-rose-100">
-                      <h3 className="text-lg font-semibold text-rose-900 mb-3">Audio–motor</h3>
+                      <h3 className="text-lg font-semibold text-rose-900 mb-2">Audio–motor</h3>
+                      <p className="text-xs text-rose-800 mb-3">
+                        Szum: {noiseEnabled ? 'włączony (nagłówek)' : 'wyłączony'}.
+                      </p>
                       <label className="flex items-center gap-3 mb-4 min-h-[48px] text-sm text-slate-700">
                         <input
                           type="checkbox"
@@ -929,7 +1087,12 @@ function TreningAPD() {
                               Math.floor(Math.random() * AUDIO_MOTOR_COMMANDS.length)
                             ];
                           setAudioMotorState({ currentCommand: command });
-                          speakText(command, { rate: 0.8 });
+                          const ctx = getAudioContext();
+                          if (noiseEnabled && ctx) {
+                            overlayNoise(ctx, 6, 0.35);
+                          }
+                          const delay = noiseEnabled ? 800 : 100;
+                          setTimeout(() => speakText(command, { rate: 0.8 }), delay);
                         }}
                         className={`${primaryBtn} bg-rose-600 text-white`}
                       >
@@ -1037,7 +1200,9 @@ function TreningAPD() {
                   onClick={() => {
                     const report = {
                       sessionTime: formatTime(sessionTime),
-                      relativeNoiseLevel: effectiveSNR,
+                      noiseEnabled,
+                      noiseType: noiseEnabled ? noiseType : null,
+                      relativeNoiseLevel: noiseEnabled ? effectiveSNR : null,
                       correctStreak: adaptiveState.correctStreak,
                       reversals: adaptiveState.reversals,
                       history: adaptiveState.history,
@@ -1049,7 +1214,7 @@ function TreningAPD() {
                       module: currentModule,
                       timestamp: new Date().toLocaleString('pl-PL'),
                       disclaimer:
-                        'Względny poziom szumu — nie kalibrowany SNR kliniczny. Trening wspomagający, nie diagnostyka.',
+                        'Opcjonalny względny poziom szumu — nie kalibrowany SNR kliniczny. Trening wspomagający, nie diagnostyka.',
                     };
                     const blob = new Blob([JSON.stringify(report, null, 2)], {
                       type: 'application/json',
@@ -1115,18 +1280,20 @@ function NoisePicker({ value, onChange, accent = 'emerald' }) {
       ? 'bg-violet-600 text-white'
       : accent === 'indigo'
         ? 'bg-indigo-600 text-white'
-        : 'bg-emerald-600 text-white';
+        : accent === 'teal'
+          ? 'bg-teal-600 text-white'
+          : 'bg-emerald-600 text-white';
 
   return (
-    <div className="bg-white rounded-xl p-3 mb-4">
-      <h4 className="font-semibold mb-2 text-sm text-slate-800">Typ szumu tła</h4>
+    <div className="bg-white rounded-xl p-3">
+      <h4 className="font-semibold mb-2 text-sm text-slate-800">Typ szumu</h4>
       <div className="grid grid-cols-2 gap-2">
         {NOISE_OPTIONS.map((noise) => (
           <button
             key={noise.type}
             type="button"
             onClick={() => onChange(noise.type)}
-            className={`p-3 rounded-xl text-left min-h-[64px] touch-manipulation ${
+            className={`p-3 rounded-xl text-left min-h-[56px] sm:min-h-[64px] touch-manipulation ${
               value === noise.type ? active : 'bg-slate-100 text-slate-700'
             }`}
           >

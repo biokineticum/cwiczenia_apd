@@ -8,8 +8,8 @@ Live: [cwiczenia-apd.vercel.app](https://cwiczenia-apd.vercel.app)
 
 ## Features
 
-- Background noises: white, pink, brown, babble; relative noise-level control via Web Audio API
-- Modules: speech in noise, environmental sounds (starter TTS), L/R lateralization & digit sequences, audio + motor commands
+- Optional background noise (white / pink / brown / babble) across all modules; relative level — not clinical SNR
+- Modules: speech (optional noise), word sequences (3–5 from ~230 Polish words), L/R lateralization & digit sequences, audio + motor
 - Mobile-first UI: bottom module nav, large touch targets, stereo-headphone prompts
 - Light gamification: points, daily streaks, badges (localStorage only)
 - Therapist / parent panel: session stats, export JSON, hidden answer keys
