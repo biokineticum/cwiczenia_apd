@@ -6,6 +6,10 @@ export.cfg
 export_presets.cfg
 *.tmp
 
+# Accidental nested empty Godot projects (no main_scene) — do not commit
+/apd/
+/apd-gra/
+
 # OS / editor
 .DS_Store
 Thumbs.db
