@@ -9,16 +9,24 @@ extends CharacterBody3D
 @export var pitch_max: float = 0.35
 
 @onready var pivot: Node3D = $CameraPivot
-@onready var mesh: MeshInstance3D = $MeshInstance3D
+@onready var visual: Node3D = $Visual
 
 var _yaw: float = 0.0
-var _pitch: float = -0.25
+var _pitch: float = -0.22
 var _look_enabled: bool = false
 
 
 func _ready() -> void:
 	_yaw = rotation.y
 	_apply_camera()
+	if visual.get_child_count() == 0:
+		var built := StylizedCharacterBuilder.build(StylizedCharacterBuilder.Style.GIRL)
+		# Przenieś dzieci zbudowanego Visual do naszego $Visual
+		while built.get_child_count() > 0:
+			var c := built.get_child(0)
+			built.remove_child(c)
+			visual.add_child(c)
+		built.free()
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -56,9 +64,9 @@ func _physics_process(delta: float) -> void:
 		velocity.x = move_toward(velocity.x, direction.x * speed, acceleration * delta)
 		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 		var look := Vector3(direction.x, 0.0, direction.z)
-		if look.length_squared() > 0.001 and mesh:
+		if look.length_squared() > 0.001 and visual:
 			var target_yaw := atan2(-look.x, -look.z)
-			mesh.rotation.y = lerp_angle(mesh.rotation.y, target_yaw, 12.0 * delta)
+			visual.rotation.y = lerp_angle(visual.rotation.y, target_yaw, 12.0 * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)

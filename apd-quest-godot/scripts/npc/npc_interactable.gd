@@ -1,9 +1,10 @@
 extends Node3D
-## NPC z Area3D — E startuje ofertę questu; aktualizuje hint HUD.
+## NPC z Area3D — E startuje ofertę questu; bajkowy wygląd z StylizedCharacterBuilder.
 
 @export var npc_id: String = "npc_echo"
 @export var display_name: String = "Echo"
 @export var body_color: Color = Color(0.35, 0.55, 0.85, 1)
+@export_enum("echo", "storm", "girl") var character_style: String = "echo"
 
 var _player_near: bool = false
 
@@ -14,10 +15,34 @@ func _ready() -> void:
 	area.body_exited.connect(_on_body_exited)
 	if has_node("NameLabel"):
 		$NameLabel.text = display_name
+	_rebuild_visual()
+
+
+func _rebuild_visual() -> void:
+	var visual: Node3D = get_node_or_null("Visual")
+	if visual == null:
+		visual = Node3D.new()
+		visual.name = "Visual"
+		add_child(visual)
+	for c in visual.get_children():
+		c.queue_free()
+	# Usuń stary pojedynczy mesh jeśli został w scenie
 	if has_node("MeshInstance3D"):
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = body_color
-		$MeshInstance3D.material_override = mat
+		$MeshInstance3D.hide()
+	var style := StylizedCharacterBuilder.Style.ECHO
+	match character_style:
+		"storm":
+			style = StylizedCharacterBuilder.Style.STORM
+		"girl":
+			style = StylizedCharacterBuilder.Style.GIRL
+		_:
+			style = StylizedCharacterBuilder.Style.ECHO
+	var built := StylizedCharacterBuilder.build(style, body_color)
+	while built.get_child_count() > 0:
+		var child := built.get_child(0)
+		built.remove_child(child)
+		visual.add_child(child)
+	built.free()
 
 
 func _unhandled_input(event: InputEvent) -> void:

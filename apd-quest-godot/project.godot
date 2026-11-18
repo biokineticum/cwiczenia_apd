@@ -8,7 +8,7 @@ config_version=5
 
 config/name="APD Quest"
 config/description="Przyjazna przygoda 3D ze słuchowymi questami (trening wspomagający APD — nie diagnostyka)."
-config/version="0.2.0"
+config/version="0.3.0"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.3", "Forward Plus")
 config/icon="res://icon.svg"
