@@ -1,5 +1,8 @@
 extends Node
 ## Centralna pętla: start questu → mini-gra słuchowa → nagroda / dialog zakończenia.
+## preload: class_name nie jest dostępne przy cold start `--path` bez importu edytora.
+
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
 
 signal quest_started(quest: QuestDefinition)
 signal quest_finished(quest: QuestDefinition, success: bool)

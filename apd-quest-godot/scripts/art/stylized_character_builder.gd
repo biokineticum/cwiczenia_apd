@@ -2,6 +2,7 @@ extends RefCounted
 class_name StylizedCharacterBuilder
 ## Bajkowe postacie: falowana spódnica, fryzura z kępek, twarz, buty — nie sama capsule.
 
+const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 
 enum Style { GIRL, ECHO, STORM }
 

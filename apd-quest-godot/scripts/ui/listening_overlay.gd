@@ -1,6 +1,10 @@
 extends Control
 ## Child-first overlay: ikony / sloty / duże targety. Tekst i szum → parent overlay.
 
+const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
+const ListeningSession = preload("res://scripts/listening/listening_session.gd")
+const IconFactory = preload("res://scripts/art/icon_factory.gd")
+
 @onready var ear_flash: TextureRect = $Panel/VBox/EarFlash
 @onready var slots_row: HBoxContainer = $Panel/VBox/Slots
 @onready var choices_grid: GridContainer = $Panel/VBox/Choices

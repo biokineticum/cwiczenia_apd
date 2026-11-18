@@ -13,7 +13,7 @@ var reward_points: int = 10
 
 
 static func from_dict(d: Dictionary) -> QuestDefinition:
-	var q := QuestDefinition.new()
+	var q := new()
 	q.id = str(d.get("id", ""))
 	q.title = str(d.get("title", ""))
 	q.npc_id = str(d.get("npc_id", ""))

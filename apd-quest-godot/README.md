@@ -10,6 +10,7 @@ To **trening wspomagający** (nie diagnostyka). Szum = **względny poziom trudno
 
 - **Godot 4.3+** (testowane na **4.7.2** Forward+), Windows OK. Preferuj wersję **standard** (nie .NET/mono).
 - Polski TTS (SAPI) zalecany do odsłuchu; bez TTS dziecko i tak nie dostaje napisów — tylko ikona ucha.
+- Skrypty używają `preload(...)` dla typów (`QuestDefinition`, `MeshFactory`, …), żeby **`run.bat` cold-start** działał bez wcześniejszego Import w edytorze (sam `class_name` bywa niewidoczny przy `--path`).
 
 ## Jak uruchomić — `run.bat` (zalecane)
 
