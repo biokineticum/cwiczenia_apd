@@ -11,6 +11,8 @@ signal dialog_requested(lines: PackedStringArray, quest_id: String, phase: Strin
 var _quests: Dictionary = {} # id -> QuestDefinition
 var active_quest: QuestDefinition = null
 var movement_locked: bool = false
+## Dialog oferty / zakończenia otwarty — blokuje ponowne wejście w NPC.
+var offering_quest_id: String = ""
 
 
 func _ready() -> void:
@@ -42,18 +44,32 @@ func get_quest_for_npc(npc_id: String) -> QuestDefinition:
 	return null
 
 
+func npc_interact_blocked() -> bool:
+	return active_quest != null or offering_quest_id != ""
+
+
 func offer_quest(quest_id: String) -> void:
 	var q: QuestDefinition = get_quest(quest_id)
 	if q == null:
 		push_warning("Nieznany quest: %s" % quest_id)
 		return
+	if active_quest != null:
+		return
+	if offering_quest_id != "":
+		return
+	offering_quest_id = quest_id
 	dialog_requested.emit(q.dialog_offer, q.id, "offer")
+
+
+func clear_offer() -> void:
+	offering_quest_id = ""
 
 
 func start_quest(quest_id: String) -> void:
 	var q: QuestDefinition = get_quest(quest_id)
 	if q == null:
 		return
+	offering_quest_id = ""
 	active_quest = q
 	movement_locked = true
 	quest_started.emit(q)
@@ -64,10 +80,13 @@ func complete_active_quest(success: bool) -> void:
 	if active_quest == null:
 		return
 	var q := active_quest
+	active_quest = null
+	movement_locked = false
 	if success:
 		ProgressStore.add_points(q.reward_points)
 		ProgressStore.unlock_badge("quest_%s" % q.id)
+		offering_quest_id = q.id
 		dialog_requested.emit(q.dialog_done, q.id, "done")
-	active_quest = null
-	movement_locked = false
+	else:
+		offering_quest_id = ""
 	quest_finished.emit(q, success)

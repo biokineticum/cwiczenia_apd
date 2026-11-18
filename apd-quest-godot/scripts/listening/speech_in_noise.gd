@@ -187,7 +187,8 @@ func _on_choice_zone(zone: Area3D) -> void:
 func _clear_zones() -> void:
 	for z in _zones:
 		if is_instance_valid(z):
-			z.queue_free()
+			z.set_deferred("monitoring", false)
+			z.call_deferred("queue_free")
 	_zones.clear()
 
 

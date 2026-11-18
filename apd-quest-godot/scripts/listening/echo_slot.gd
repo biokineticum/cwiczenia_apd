@@ -89,7 +89,7 @@ func place_prop(prop: Area3D) -> void:
 	filled_word_id = str(prop.get("word_id"))
 	prop.placed = true
 	prop.carried = false
-	prop.monitoring = false
+	prop.set_deferred("monitoring", false)
 	var parent: Node = prop.get_parent()
 	if parent:
 		parent.remove_child(prop)
@@ -100,6 +100,7 @@ func place_prop(prop: Area3D) -> void:
 	set_highlight(false)
 	_dwell_body = null
 	_dwell_time = 0.0
+	set_deferred("monitoring", false)
 
 
 func _on_body_entered(body: Node3D) -> void:

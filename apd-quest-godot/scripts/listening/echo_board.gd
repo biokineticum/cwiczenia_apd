@@ -151,7 +151,7 @@ func reset_board() -> void:
 					add_child(c)
 				c.placed = false
 				c.carried = false
-				c.monitoring = true
+				c.set_deferred("monitoring", true)
 				c.visible = true
 				c.scale = Vector3.ONE
 				c.position = c._home
@@ -169,7 +169,7 @@ func reset_board() -> void:
 			want_parent.add_child(prop)
 		prop.placed = false
 		prop.carried = false
-		prop.monitoring = true
+		prop.set_deferred("monitoring", true)
 		prop.visible = true
 		prop.scale = Vector3.ONE
 		prop.position = prop._home
@@ -178,7 +178,12 @@ func reset_board() -> void:
 
 
 func _on_prop_picked(prop: Area3D) -> void:
-	if not _active or prop.placed:
+	# body_entered → nie mutuj Area/CollisionObject w tym samym callbacku.
+	call_deferred("_pick_prop_deferred", prop)
+
+
+func _pick_prop_deferred(prop: Area3D) -> void:
+	if not _active or not is_instance_valid(prop) or prop.placed or prop.carried:
 		return
 	if Time.get_ticks_msec() < _pick_ready_ms:
 		return
@@ -193,7 +198,7 @@ func _on_prop_picked(prop: Area3D) -> void:
 		return
 	_carry = prop
 	prop.carried = true
-	prop.monitoring = false
+	prop.set_deferred("monitoring", false)
 	_set_props_pickable(false)
 	_attach_to_player(prop)
 	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
@@ -203,7 +208,12 @@ func _on_prop_picked(prop: Area3D) -> void:
 
 
 func _on_slot_place(slot: Area3D) -> void:
-	if not _active or _carry == null:
+	# place_requested leci z _physics_process — reparent deferred.
+	call_deferred("_place_on_slot_deferred", slot)
+
+
+func _place_on_slot_deferred(slot: Area3D) -> void:
+	if not _active or not is_instance_valid(slot) or _carry == null:
 		return
 	if not slot.is_empty():
 		return
@@ -262,7 +272,7 @@ func _set_props_pickable(enabled: bool) -> void:
 		var prop: Area3D = p as Area3D
 		if prop == null or prop.placed or prop.carried:
 			continue
-		prop.monitoring = enabled
+		prop.set_deferred("monitoring", enabled)
 
 
 func _next_slot_index() -> int:
@@ -282,7 +292,7 @@ func _refresh_highlights() -> void:
 		var is_next: bool = (i == next_i and _slots[i].is_empty())
 		_slots[i].set_highlight(is_next)
 		# Tylko aktywne kółko + gdy niesie prop.
-		_slots[i].monitoring = is_next and _carry != null
+		_slots[i].set_deferred("monitoring", is_next and _carry != null)
 
 
 func _apply_answer_speed(enable: bool) -> void:
@@ -329,6 +339,8 @@ func _attach_to_player(prop: Area3D) -> void:
 		_player = _find_player()
 	if _player == null:
 		return
+	if not is_instance_valid(prop):
+		return
 	var par: Node = prop.get_parent()
 	if par:
 		par.remove_child(prop)
@@ -338,6 +350,8 @@ func _attach_to_player(prop: Area3D) -> void:
 
 
 func _detach_from_player(prop: Area3D) -> void:
+	if not is_instance_valid(prop):
+		return
 	var par: Node = prop.get_parent()
 	if par:
 		par.remove_child(prop)
@@ -347,6 +361,7 @@ func _drop_carry_visual() -> void:
 	if _carry == null:
 		return
 	var prop := _carry
+	_carry = null
 	_detach_from_player(prop)
 	var pickups: Node = get_node_or_null("EchoPickups")
 	if pickups:
@@ -354,10 +369,9 @@ func _drop_carry_visual() -> void:
 	else:
 		add_child(prop)
 	prop.carried = false
-	prop.monitoring = true
+	prop.set_deferred("monitoring", true)
 	prop.position = prop._home
 	prop.scale = Vector3.ONE
-	_carry = null
 
 
 func _find_player() -> Node3D:

@@ -164,6 +164,7 @@ func _do_accept() -> void:
 		accepted.emit(_quest_id)
 		QuestManager.start_quest(_quest_id)
 	else:
+		QuestManager.clear_offer()
 		QuestManager.movement_locked = false
 		dismissed.emit()
 
@@ -175,6 +176,7 @@ func _do_dismiss() -> void:
 	visible = false
 	title_label.visible = false
 	body_label.visible = false
+	QuestManager.clear_offer()
 	QuestManager.movement_locked = false
 	dismissed.emit()
 
@@ -190,7 +192,9 @@ func _on_parent_released() -> void:
 func _clear_zones() -> void:
 	for z in _zones:
 		if is_instance_valid(z):
-			z.queue_free()
+			# Nie usuwaj CollisionObject w środku fizyki / sygnału Area.
+			z.set_deferred("monitoring", false)
+			z.call_deferred("queue_free")
 	_zones.clear()
 
 
