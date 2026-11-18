@@ -159,6 +159,44 @@ export function speakText(text, { lang = 'pl-PL', rate = 0.8, volume = 0.75, pit
   });
 }
 
+/** Speak words one-by-one with a short gap (auditory sequence training). */
+export function speakWordSequence(
+  words,
+  { lang = 'pl-PL', rate = 0.75, volume = 0.8, gapMs = 400 } = {}
+) {
+  return new Promise((resolve) => {
+    if (!('speechSynthesis' in window) || !words?.length) {
+      resolve(false);
+      return;
+    }
+    stopSpeech();
+    let index = 0;
+
+    const speakNext = () => {
+      if (index >= words.length) {
+        resolve(true);
+        return;
+      }
+      const utterance = new SpeechSynthesisUtterance(String(words[index]));
+      utterance.lang = lang;
+      utterance.rate = rate;
+      utterance.volume = volume;
+      utterance.onend = () => {
+        index += 1;
+        if (index >= words.length) {
+          resolve(true);
+          return;
+        }
+        setTimeout(speakNext, gapMs);
+      };
+      utterance.onerror = () => resolve(false);
+      window.speechSynthesis.speak(utterance);
+    };
+
+    speakNext();
+  });
+}
+
 export function playTone(ctx, frequency, pan = 0, durationMs = 1000, gain = 0.28) {
   const oscillator = ctx.createOscillator();
   const gainNode = ctx.createGain();
@@ -199,4 +237,25 @@ export function scoreSpeechAnswer(userInput, targetWords, threshold = 0.7) {
   });
   const accuracy = targets.length === 0 ? 0 : correctWords / targets.length;
   return { accuracy, correctWords, isCorrect: accuracy >= threshold };
+}
+
+/** Exact-order match for word / digit auditory sequences. */
+export function scoreExactSequence(userInputOrWords, targetWords) {
+  const userWords = Array.isArray(userInputOrWords)
+    ? userInputOrWords.map((w) => String(w).toLowerCase().trim())
+    : normalizeAnswer(userInputOrWords);
+  const targets = targetWords.map((w) => String(w).toLowerCase().trim());
+  const isCorrect =
+    userWords.length === targets.length &&
+    userWords.every((word, i) => word === targets[i]);
+  let correctInOrder = 0;
+  for (let i = 0; i < Math.min(userWords.length, targets.length); i += 1) {
+    if (userWords[i] === targets[i]) correctInOrder += 1;
+    else break;
+  }
+  return {
+    isCorrect,
+    correctInOrder,
+    accuracy: targets.length === 0 ? 0 : correctInOrder / targets.length,
+  };
 }
