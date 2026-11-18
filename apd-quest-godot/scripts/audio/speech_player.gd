@@ -1,13 +1,14 @@
 extends Node
-## Odtwarzanie bodźców mowy z plików. Godot nie ma wbudowanego PL TTS jak przeglądarka —
-## docelowo WAV/OGG w assets/audio/. Stub loguje tekst do odtworzenia.
 class_name SpeechPlayer
+## Bodźce mowy: systemowy TTS gdy dostępny; inaczej sygnał spoken_stub dla flash UI.
 
 signal finished
+signal spoken_stub(text: String)
 
 @export var bus_name: String = "Speech"
 
 var _player: AudioStreamPlayer
+var _waiting: bool = false
 
 
 func _ready() -> void:
@@ -17,11 +18,32 @@ func _ready() -> void:
 	add_child(_player)
 
 
-func play_text_stub(text: String) -> void:
+func has_tts() -> bool:
+	return not DisplayServer.tts_get_voices().is_empty()
+
+
+func play_text(text: String, interrupt: bool = true) -> void:
 	stop()
-	print("[SpeechPlayer] stub play: \"%s\" (podmień na AudioStream na PC)" % text)
-	# Symulacja krótkiego „odtworzenia” bez audio — sygnał po delay.
-	get_tree().create_timer(0.6).timeout.connect(func(): finished.emit(), CONNECT_ONE_SHOT)
+	spoken_stub.emit(text)
+	if interrupt and DisplayServer.tts_is_speaking():
+		DisplayServer.tts_stop()
+
+	var voice_id := _pick_voice_id()
+	if voice_id != "":
+		_waiting = true
+		DisplayServer.tts_speak(text, voice_id, 85, 1.0, 0.95, 0, interrupt)
+		var approx := maxf(0.75, float(text.length()) * 0.08)
+		get_tree().create_timer(approx).timeout.connect(_finish_wait, CONNECT_ONE_SHOT)
+		print("[SpeechPlayer] TTS: \"%s\" voice=%s" % [text, voice_id])
+		return
+
+	print("[SpeechPlayer] brak TTS — stub tekstowy: \"%s\"" % text)
+	_waiting = true
+	get_tree().create_timer(0.9).timeout.connect(_finish_wait, CONNECT_ONE_SHOT)
+
+
+func play_text_stub(text: String) -> void:
+	play_text(text)
 
 
 func play_stream(stream: AudioStream) -> void:
@@ -31,5 +53,27 @@ func play_stream(stream: AudioStream) -> void:
 
 
 func stop() -> void:
+	_waiting = false
+	if DisplayServer.tts_is_speaking():
+		DisplayServer.tts_stop()
 	if _player and _player.playing:
 		_player.stop()
+
+
+func _pick_voice_id() -> String:
+	var pl := DisplayServer.tts_get_voices_for_language("pl")
+	if pl.size() > 0:
+		return str(pl[0])
+	var all := DisplayServer.tts_get_voices()
+	if all.is_empty():
+		return ""
+	var first = all[0]
+	if typeof(first) == TYPE_DICTIONARY:
+		return str(first.get("id", ""))
+	return str(first)
+
+
+func _finish_wait() -> void:
+	if _waiting:
+		_waiting = false
+		finished.emit()

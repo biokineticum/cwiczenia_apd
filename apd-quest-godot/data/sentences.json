@@ -1,5 +1,5 @@
 {
-  "note": "Subset z web exerciseData SENTENCES — pełną bazę zsynchronizować później.",
+  "note": "Subset SENTENCES z web exerciseData — pełną bazę zsynchronizować później.",
   "items": [
     "Mama gotuje obiad",
     "Tata czyta gazetę",
@@ -8,6 +8,13 @@
     "Dziewczynka liczy do dziesięciu",
     "Usiądź przy stole",
     "Zamknij drzwi",
-    "Przynieś mi książkę"
+    "Przynieś mi książkę",
+    "Babcia piecze ciasto",
+    "Dziecko rysuje kredkami",
+    "Zielona trawa jest mokra",
+    "Jutro pójdziemy do kina",
+    "Tata pije wodę",
+    "Kot łowi myszy",
+    "Gdzie jest moja zabawka?"
   ]
 }

@@ -16,7 +16,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.1, 0.18, 0.55)
+color = Color(0.04, 0.12, 0.1, 0.62)
 
 [node name="Panel" type="PanelContainer" parent="."]
 layout_mode = 1
@@ -25,10 +25,12 @@ anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -240.0
-offset_top = -100.0
-offset_right = 240.0
-offset_bottom = 100.0
+offset_left = -280.0
+offset_top = -220.0
+offset_right = 280.0
+offset_bottom = 220.0
+grow_horizontal = 2
+grow_vertical = 2
 
 [node name="VBox" type="VBoxContainer" parent="Panel"]
 layout_mode = 2
@@ -36,17 +38,60 @@ theme_override_constants/separation = 10
 
 [node name="Title" type="Label" parent="Panel/VBox"]
 layout_mode = 2
-theme_override_font_sizes/font_size = 22
+theme_override_font_sizes/font_size = 24
 text = "Quest"
 horizontal_alignment = 1
 
 [node name="Status" type="Label" parent="Panel/VBox"]
 layout_mode = 2
+autowrap_mode = 3
 text = "Słuchaj uważnie…"
 horizontal_alignment = 1
+
+[node name="Flash" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+horizontal_alignment = 1
+text = ""
 
 [node name="NoiseInfo" type="Label" parent="Panel/VBox"]
 layout_mode = 2
 autowrap_mode = 3
 horizontal_alignment = 1
 text = "Szum: wyłączony"
+
+[node name="Hint" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+autowrap_mode = 3
+horizontal_alignment = 1
+modulate = Color(0.9, 0.92, 0.85, 1)
+text = ""
+
+[node name="Selected" type="Label" parent="Panel/VBox"]
+layout_mode = 2
+autowrap_mode = 3
+horizontal_alignment = 1
+text = ""
+
+[node name="Choices" type="VBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Controls" type="HBoxContainer" parent="Panel/VBox"]
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 12
+
+[node name="NoiseToggle" type="CheckButton" parent="Panel/VBox/Controls"]
+layout_mode = 2
+text = "Szum"
+
+[node name="Replay" type="Button" parent="Panel/VBox/Controls"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "Odsłuchaj"
+
+[node name="Undo" type="Button" parent="Panel/VBox/Controls"]
+custom_minimum_size = Vector2(120, 44)
+layout_mode = 2
+text = "Cofnij"
