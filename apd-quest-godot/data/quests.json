@@ -10,9 +10,9 @@
         "Ułóż zaklęcie tak, jak usłyszysz."
       ],
       "dialog_done": [
-        "Udało się — zaklęcie znów świeci!"
+        "Udało się! Zaklęcie znów świeci."
       ],
-      "parent_blurb": "Ćwiczenie kolejności słuchowej (trening wspomagający, nie diagnostyka).",
+      "parent_blurb": "Ćwiczenie kolejności słuchowej (trening wspomagający, nie diagnostyka). Domyślnie 4 symbole; rodzic może obniżyć trudność.",
       "noise_optional": true,
       "reward_points": 20
     },
@@ -26,9 +26,9 @@
         "Posłuchaj i wskaż obrazek."
       ],
       "dialog_done": [
-        "Wiadomość dotarła — brawo!"
+        "Wiadomość dotarła. Brawo!"
       ],
-      "parent_blurb": "Mowa w szumie: dziecko wskazuje ilustrację. Szum = względny poziom trudności (nie kliniczny SNR).",
+      "parent_blurb": "Mowa w szumie: dziecko wskazuje ilustrację. Szum = względny poziom trudności (nie kliniczny SNR). Instrukcje tylko głosem.",
       "noise_optional": true,
       "reward_points": 25
     }

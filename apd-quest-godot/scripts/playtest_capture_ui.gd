@@ -14,7 +14,7 @@ func _initialize() -> void:
 	qm.call("start_quest", qid)
 	await create_timer(0.4).timeout
 	var overlay := _find(root, "ListeningOverlay")
-	var deadline := Time.get_ticks_msec() + 30000
+	var deadline := Time.get_ticks_msec() + 55000
 	var session: Node = null
 	var module: Node = null
 	while Time.get_ticks_msec() < deadline:

@@ -40,7 +40,7 @@ func _initialize() -> void:
 			module = session.get("_module")
 			if module != null and module.get("_presenting") == false:
 				var seq: PackedStringArray = module.get("sequence")
-				if seq.size() >= 2:
+				if seq.size() >= 4:
 					break
 		await create_timer(0.25).timeout
 

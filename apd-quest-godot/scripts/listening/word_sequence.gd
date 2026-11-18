@@ -98,27 +98,28 @@ func _demo_then_present() -> void:
 		"parent_text": get_parent_stimulus_text(),
 		"child_text_hidden": true,
 	})
+	# Instrukcja tylko głosem — zero napisu dla dziecka.
 	_speech.play_text("Ułóż zaklęcie tak, jak usłyszysz.")
 	await _speech.finished
-	await get_tree().create_timer(0.35).timeout
-	# Krótka demo: pokaż 2 pierwsze ikony wjeżdżające na sloty (ghost).
+	await get_tree().create_timer(0.3).timeout
+	# Ciche demo: ghost-ikony wjeżdżają na sloty (bez tekstu).
 	if sequence_icons.size() >= 2:
+		var ghost_slots: Array = []
+		for i in mini(sequence_icons.size(), 4):
+			ghost_slots.append({"icon": sequence_icons[i], "ghost": true})
 		ui_changed.emit({
 			"phase": "demo",
 			"mode": "word_sequence",
 			"title_icon": "ear",
 			"flash_icon": "",
 			"choices": [],
-			"slots": [
-				{"icon": sequence_icons[0], "ghost": true},
-				{"icon": sequence_icons[1], "ghost": true},
-			],
+			"slots": ghost_slots,
 			"selected_icons": [],
 			"noise_on": _noise_on,
 			"parent_text": get_parent_stimulus_text(),
 			"child_text_hidden": true,
 		})
-		await get_tree().create_timer(1.0).timeout
+		await get_tree().create_timer(1.1).timeout
 	_present_sequence(true)
 
 
@@ -157,6 +158,8 @@ func _present_sequence(_first: bool) -> void:
 		await _speech.finished
 		await get_tree().create_timer(0.75).timeout
 	_presenting = false
+	_speech.play_text("Twoja kolej. Wskaż obrazki w tej samej kolejności.")
+	await _speech.finished
 	_emit_answer_ui()
 
 
@@ -269,16 +272,17 @@ func _load_pool() -> void:
 
 func _build_sequence() -> void:
 	var path := "res://data/word_pool.json"
-	var length_min := 2
-	var length_max := 3
+	# Domyślnie 4 symbole (ścieżka dziecka); rodzic może obniżyć w danych/overlay.
+	var length_min := 4
+	var length_max := 4
 	var ids: Array = _word_meta.keys()
 	if FileAccess.file_exists(path):
 		var data = JSON.parse_string(FileAccess.get_file_as_string(path))
 		if typeof(data) == TYPE_DICTIONARY:
-			length_min = int(data.get("default_length_min", 2))
-			length_max = int(data.get("default_length_max", 3))
+			length_min = int(data.get("default_length_min", 4))
+			length_max = int(data.get("default_length_max", 4))
 	ids.shuffle()
-	var n := randi_range(length_min, length_max)
+	var n := randi_range(mini(length_min, length_max), maxi(length_min, length_max))
 	sequence = PackedStringArray()
 	sequence_icons = PackedStringArray()
 	sequence_labels = PackedStringArray()

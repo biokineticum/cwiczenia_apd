@@ -368,7 +368,9 @@ func _build_sign() -> void:
 	MeshFactory.add_mesh(sign, MeshFactory.cylinder(0.06, 0.07, 1.65), wood, Vector3(0, 0.82, 0))
 	MeshFactory.add_mesh(sign, MeshFactory.box(Vector3(1.9, 0.75, 0.14)), wood, Vector3(0, 1.65, 0))
 	var label := Label3D.new()
-	label.text = "Polana Echo"
+	# Dekoracyjny znak — bez tekstu dla dziecka (rodzic i tak widzi polanę).
+	label.text = ""
+	label.visible = false
 	label.font_size = 44
 	label.outline_size = 12
 	label.position = Vector3(0, 1.65, 0.1)

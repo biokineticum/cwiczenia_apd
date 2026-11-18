@@ -120,10 +120,15 @@ func _present_then_ask() -> void:
 		"parent_text": target_sentence,
 		"child_text_hidden": true,
 	})
-	# Nigdy nie pokazujemy zdania dziecku — tylko TTS + ikona ucha.
+	# Instrukcja głosowa, potem zdanie — nigdy tekst zdania na UI dziecka.
+	_speech.play_text("Posłuchaj. Potem wskaż obrazek.")
+	await _speech.finished
+	await get_tree().create_timer(0.2).timeout
 	_speech.play_text(target_sentence)
 	await _speech.finished
-	await get_tree().create_timer(0.25).timeout
+	await get_tree().create_timer(0.2).timeout
+	_speech.play_text("Wskaż obrazek.")
+	await _speech.finished
 	_emit_answer_ui()
 
 
