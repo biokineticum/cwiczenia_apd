@@ -60,31 +60,84 @@ func _on_quest_started(quest: QuestDefinition) -> void:
 func _on_ui_changed(state: Dictionary) -> void:
 	_last_state = state
 	var phase := str(state.get("phase", ""))
+	var world_board := bool(state.get("world_board", false))
 	var flash_icon := str(state.get("flash_icon", ""))
-	if flash_icon != "":
+	# Echo 3D: ukryj duży panel z kafelkami — gra toczy się na polanie.
+	if world_board:
+		$Panel.visible = phase == "present" or phase == "demo" or phase == "retry" or phase == "result"
+		if phase == "answer":
+			$Panel.visible = false
+			_clear_choices()
+			_clear_slots()
+		# Mały pasek rodzica / replay zostaje dostępny przez ParentOverlay + klawisz — poniżej corner controls.
+		_ensure_corner_controls(phase)
+	else:
+		$Panel.visible = true
+
+	if flash_icon != "" and $Panel.visible:
 		ear_flash.texture = IconFactory.get_icon(flash_icon)
 		ear_flash.visible = true
 		ear_flash.modulate = Color(1, 1, 1, 1)
 	else:
-		ear_flash.visible = phase == "present" or phase == "demo"
+		ear_flash.visible = ($Panel.visible and (phase == "present" or phase == "demo"))
 		if ear_flash.visible:
 			ear_flash.texture = IconFactory.get_icon("ear")
 
-	_rebuild_slots(state.get("slots", []))
-	if phase == "answer":
-		_rebuild_choices(state.get("choices", []))
-	elif phase in ["present", "demo", "retry", "result"]:
-		if phase != "answer":
+	if not world_board:
+		_rebuild_slots(state.get("slots", []))
+		if phase == "answer":
+			_rebuild_choices(state.get("choices", []))
+		elif phase in ["present", "demo", "retry", "result"]:
 			_clear_choices()
-
-	undo_btn.visible = bool(state.get("can_undo", false))
-	replay_btn.visible = phase == "answer" or phase == "present" or phase == "retry"
-	parent_btn.visible = true
+		undo_btn.visible = bool(state.get("can_undo", false))
+		replay_btn.visible = phase == "answer" or phase == "present" or phase == "retry"
+		parent_btn.visible = true
+	else:
+		_clear_choices()
+		if phase != "answer":
+			_rebuild_slots(state.get("slots", []))
+		undo_btn.visible = false
+		replay_btn.visible = false
 
 	if phase == "retry" or (phase == "result" and not bool(state.get("success", true))):
 		_show_warm_retry()
 	elif phase == "result" and bool(state.get("success", false)):
 		_show_warm_success()
+
+
+func _ensure_corner_controls(phase: String) -> void:
+	# Podczas układania 3D: tylko ikona rodzica (long-press) w rogu — bez siatki odpowiedzi.
+	if not has_node("CornerControls"):
+		var box := HBoxContainer.new()
+		box.name = "CornerControls"
+		box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		box.offset_left = -160
+		box.offset_top = 12
+		box.offset_right = -12
+		box.offset_bottom = 90
+		box.alignment = BoxContainer.ALIGNMENT_END
+		add_child(box)
+		var replay := TextureButton.new()
+		replay.name = "CornerReplay"
+		replay.texture_normal = IconFactory.get_icon("ear")
+		replay.ignore_texture_size = true
+		replay.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		replay.custom_minimum_size = Vector2(64, 64)
+		replay.pressed.connect(func(): if _session: _session.replay())
+		box.add_child(replay)
+		var parent := TextureButton.new()
+		parent.name = "CornerParent"
+		parent.texture_normal = IconFactory.get_icon("parent")
+		parent.ignore_texture_size = true
+		parent.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		parent.custom_minimum_size = Vector2(64, 64)
+		parent.button_down.connect(func(): _parent_press_ms = Time.get_ticks_msec())
+		parent.button_up.connect(_on_parent_released)
+		box.add_child(parent)
+	var corner: Control = $CornerControls
+	corner.visible = phase == "answer" or phase == "retry"
+	if has_node("CornerControls/CornerReplay"):
+		$CornerControls/CornerReplay.visible = phase == "answer" or phase == "retry"
 
 
 func _rebuild_slots(slots: Array) -> void:
