@@ -1,8 +1,9 @@
 extends Node
-## Burza 5-latka: odsłuch zdania → wybór obrazka (2–4), bez tekstu MC na ekranie dziecka.
+## Burza: odsłuch → wejdź w obrazek na polanie (bez klikania UI).
 
 const NoisePlayer = preload("res://scripts/audio/noise_player.gd")
 const SpeechPlayer = preload("res://scripts/audio/speech_player.gd")
+const WalkZone = preload("res://scripts/world/walk_confirm_zone.gd")
 
 signal finished(success: bool, detail: Dictionary)
 signal ui_changed(state: Dictionary)
@@ -17,10 +18,10 @@ var _relative_level: float = 0.35
 var _noise_type: String = "pink"
 var _answered: bool = false
 var _fail_count: int = 0
+var _zones: Array = []
 
 
 func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
-	# Domyślnie szum OFF dla 5-latki — rodzic włącza w overlay.
 	_noise_on = noise_on
 	_relative_level = relative_level
 	_noise_type = noise_type
@@ -33,7 +34,7 @@ func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
 	add_child(_speech)
 	if _noise_on:
 		_noise.start(_noise_type, _relative_level)
-	print("[SpeechInNoise] \"%s\" illust=%s" % [target_sentence, target_illustration])
+	print("[SpeechInNoise] \"%s\" illust=%s (walk pads)" % [target_sentence, target_illustration])
 	_present_then_ask()
 
 
@@ -41,11 +42,14 @@ func submit_choice(illustration_id: String) -> void:
 	if _answered:
 		return
 	var ok := illustration_id == target_illustration
+	_clear_zones()
 	if ok:
 		_answered = true
+		QuestManager.movement_locked = true
 		ui_changed.emit({
 			"phase": "result",
 			"mode": "speech_in_noise",
+			"world_board": true,
 			"title_icon": "ear",
 			"flash_icon": target_illustration,
 			"choices": [],
@@ -58,7 +62,8 @@ func submit_choice(illustration_id: String) -> void:
 		})
 		if _noise:
 			_noise.stop()
-		await get_tree().create_timer(0.9).timeout
+		_speech.play_text("Brawo!")
+		await _speech.finished
 		finished.emit(true, {"sentence": target_sentence, "illustration": target_illustration, "choice": illustration_id})
 		return
 
@@ -66,6 +71,7 @@ func submit_choice(illustration_id: String) -> void:
 	ui_changed.emit({
 		"phase": "retry",
 		"mode": "speech_in_noise",
+		"world_board": true,
 		"title_icon": "ear",
 		"flash_icon": "ear",
 		"choices": [],
@@ -77,11 +83,14 @@ func submit_choice(illustration_id: String) -> void:
 		"child_text_hidden": true,
 		"fail_count": _fail_count,
 	})
-	await get_tree().create_timer(0.55).timeout
+	_speech.play_text("Spróbujmy jeszcze raz.")
+	await _speech.finished
+	await get_tree().create_timer(0.35).timeout
 	if _fail_count >= 3:
 		_answered = true
 		if _noise:
 			_noise.stop()
+		QuestManager.movement_locked = true
 		finished.emit(true, {"sentence": target_sentence, "scaffolded": true})
 		return
 	_present_then_ask()
@@ -101,7 +110,6 @@ func set_noise_enabled(enabled: bool) -> void:
 		_noise.start(_noise_type, _relative_level)
 	else:
 		_noise.stop()
-	_emit_answer_ui()
 
 
 func get_parent_stimulus_text() -> String:
@@ -109,9 +117,12 @@ func get_parent_stimulus_text() -> String:
 
 
 func _present_then_ask() -> void:
+	_clear_zones()
+	QuestManager.movement_locked = true
 	ui_changed.emit({
 		"phase": "present",
 		"mode": "speech_in_noise",
+		"world_board": true,
 		"title_icon": "ear",
 		"flash_icon": "ear",
 		"choices": [],
@@ -120,34 +131,71 @@ func _present_then_ask() -> void:
 		"parent_text": target_sentence,
 		"child_text_hidden": true,
 	})
-	# Instrukcja głosowa, potem zdanie — nigdy tekst zdania na UI dziecka.
-	_speech.play_text("Posłuchaj. Potem wskaż obrazek.")
+	_speech.play_text("Posłuchaj. Potem wejdź w obrazek.")
 	await _speech.finished
-	await get_tree().create_timer(0.2).timeout
+	await get_tree().create_timer(0.15).timeout
 	_speech.play_text(target_sentence)
 	await _speech.finished
-	await get_tree().create_timer(0.2).timeout
-	_speech.play_text("Wskaż obrazek.")
+	await get_tree().create_timer(0.15).timeout
+	_speech.play_text("Wejdź w obrazek.")
 	await _speech.finished
-	_emit_answer_ui()
-
-
-func _emit_answer_ui() -> void:
-	var choice_dicts: Array = []
-	for ic in _choice_icons:
-		choice_dicts.append({"id": str(ic), "icon": str(ic), "used": false})
+	_spawn_choice_pads()
+	QuestManager.movement_locked = false
 	ui_changed.emit({
 		"phase": "answer",
 		"mode": "speech_in_noise",
+		"world_board": true,
 		"title_icon": "ear",
 		"flash_icon": "",
-		"choices": choice_dicts,
+		"choices": [],
 		"slots": [],
 		"noise_on": _noise_on,
 		"parent_text": target_sentence,
 		"child_text_hidden": true,
 		"can_undo": false,
 	})
+
+
+func _spawn_choice_pads() -> void:
+	_clear_zones()
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var player := _find_player()
+	var origin := Vector3(0, 0.05, 0)
+	if player:
+		origin = player.global_position
+	var n := _choice_icons.size()
+	var spacing := 2.8
+	var start_x := -0.5 * spacing * float(maxi(n - 1, 1))
+	for i in n:
+		var z := WalkZone.new()
+		scene.add_child(z)
+		var pos := origin + Vector3(start_x + float(i) * spacing, 0.0, -2.4)
+		z.setup("choice", str(_choice_icons[i]), pos, Color(0.95, 0.88, 0.55), str(_choice_icons[i]))
+		z.walked_in.connect(_on_choice_zone)
+		_zones.append(z)
+
+
+func _on_choice_zone(zone: Area3D) -> void:
+	var cid := str(zone.get("choice_id"))
+	if cid == "":
+		return
+	submit_choice(cid)
+
+
+func _clear_zones() -> void:
+	for z in _zones:
+		if is_instance_valid(z):
+			z.queue_free()
+	_zones.clear()
+
+
+func _find_player() -> Node3D:
+	var nodes := get_tree().get_nodes_in_group("player")
+	if nodes.is_empty():
+		return null
+	return nodes[0] as Node3D
 
 
 func _pick_item() -> void:
@@ -166,7 +214,6 @@ func _pick_item() -> void:
 					target_illustration = str(item.get("illustration", fallback_ill))
 					distractors = item.get("distractors", distractors)
 				else:
-					# Legacy string items
 					target_sentence = str(item)
 					target_illustration = fallback_ill
 				_build_choices(distractors)
@@ -186,8 +233,11 @@ func _build_choices(distractors: Array) -> void:
 	while pool.size() < 2:
 		pool.append("house")
 	pool.shuffle()
-	# 2–4 obrazki
 	var n := mini(4, maxi(2, pool.size()))
 	_choice_icons = PackedStringArray()
 	for i in n:
 		_choice_icons.append(str(pool[i]))
+
+
+func _exit_tree() -> void:
+	_clear_zones()

@@ -1,5 +1,5 @@
 extends Control
-## Child-first overlay: ikony / sloty / duże targety. Tekst i szum → parent overlay.
+## Overlay: dla dziecka bez klików — Echo/Burza = świat 3D. Parent = long-press.
 
 const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
 const ListeningSession = preload("res://scripts/listening/listening_session.gd")
@@ -16,24 +16,28 @@ const IconFactory = preload("res://scripts/art/icon_factory.gd")
 @onready var parent_overlay: Control = $ParentOverlay
 
 var _session: ListeningSession
-var _building_ui: bool = false
-var _parent_press_ms: int = 0
 var _last_state: Dictionary = {}
 var _quest: QuestDefinition = null
+var _parent_press_ms: int = 0
 
 
 func _ready() -> void:
 	visible = false
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if has_node("Dim"):
+		$Dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if has_node("Panel"):
+		$Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	QuestManager.quest_started.connect(_on_quest_started)
-	replay_btn.texture_normal = IconFactory.get_icon("ear")
-	undo_btn.texture_normal = IconFactory.get_icon("undo")
+	# Dziecko nie klika replay/undo/choices — tylko parent long-press.
+	replay_btn.visible = false
+	undo_btn.visible = false
+	replay_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	undo_btn.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	parent_btn.texture_normal = IconFactory.get_icon("parent")
-	for b in [replay_btn, undo_btn, parent_btn]:
-		b.ignore_texture_size = true
-		b.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		b.custom_minimum_size = Vector2(72, 72)
-	replay_btn.pressed.connect(func(): if _session: _session.replay())
-	undo_btn.pressed.connect(func(): if _session: _session.undo_last())
+	parent_btn.ignore_texture_size = true
+	parent_btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+	parent_btn.custom_minimum_size = Vector2(64, 64)
 	parent_btn.button_down.connect(func(): _parent_press_ms = Time.get_ticks_msec())
 	parent_btn.button_up.connect(_on_parent_released)
 	if parent_overlay.has_signal("noise_toggled"):
@@ -52,7 +56,6 @@ func _on_quest_started(quest: QuestDefinition) -> void:
 	add_child(_session)
 	_session.ui_changed.connect(_on_ui_changed)
 	_session.session_finished.connect(_on_session_finished)
-	# 5-latka: szum startuje wyłączony (rodzic może włączyć).
 	NoiseSettings.set_enabled(false)
 	_session.start_from_quest(quest)
 
@@ -62,42 +65,28 @@ func _on_ui_changed(state: Dictionary) -> void:
 	var phase := str(state.get("phase", ""))
 	var world_board := bool(state.get("world_board", false))
 	var flash_icon := str(state.get("flash_icon", ""))
-	# Echo 3D: ukryj duży panel z kafelkami — gra toczy się na polanie.
-	if world_board:
+	# Zawsze tryb świata dla odpowiedzi — bez siatki klikanej.
+	if world_board or phase == "answer":
 		$Panel.visible = phase == "present" or phase == "demo" or phase == "retry" or phase == "result"
 		if phase == "answer":
 			$Panel.visible = false
 			_clear_choices()
 			_clear_slots()
-		# Mały pasek rodzica / replay zostaje dostępny przez ParentOverlay + klawisz — poniżej corner controls.
-		_ensure_corner_controls(phase)
 	else:
 		$Panel.visible = true
+		_clear_choices() # nigdy nie buduj klikalnych choices
 
 	if flash_icon != "" and $Panel.visible:
 		ear_flash.texture = IconFactory.get_icon(flash_icon)
 		ear_flash.visible = true
-		ear_flash.modulate = Color(1, 1, 1, 1)
 	else:
-		ear_flash.visible = ($Panel.visible and (phase == "present" or phase == "demo"))
+		ear_flash.visible = $Panel.visible and (phase == "present" or phase == "demo")
 		if ear_flash.visible:
 			ear_flash.texture = IconFactory.get_icon("ear")
 
-	if not world_board:
-		_rebuild_slots(state.get("slots", []))
-		if phase == "answer":
-			_rebuild_choices(state.get("choices", []))
-		elif phase in ["present", "demo", "retry", "result"]:
-			_clear_choices()
-		undo_btn.visible = bool(state.get("can_undo", false))
-		replay_btn.visible = phase == "answer" or phase == "present" or phase == "retry"
-		parent_btn.visible = true
-	else:
-		_clear_choices()
-		if phase != "answer":
-			_rebuild_slots(state.get("slots", []))
-		undo_btn.visible = false
-		replay_btn.visible = false
+	replay_btn.visible = false
+	undo_btn.visible = false
+	_ensure_parent_corner(phase)
 
 	if phase == "retry" or (phase == "result" and not bool(state.get("success", true))):
 		_show_warm_retry()
@@ -105,26 +94,18 @@ func _on_ui_changed(state: Dictionary) -> void:
 		_show_warm_success()
 
 
-func _ensure_corner_controls(phase: String) -> void:
-	# Podczas układania 3D: tylko ikona rodzica (long-press) w rogu — bez siatki odpowiedzi.
+func _ensure_parent_corner(phase: String) -> void:
+	# Tylko long-press rodzica — bez CornerReplay.
 	if not has_node("CornerControls"):
 		var box := HBoxContainer.new()
 		box.name = "CornerControls"
 		box.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		box.offset_left = -160
+		box.offset_left = -90
 		box.offset_top = 12
 		box.offset_right = -12
 		box.offset_bottom = 90
 		box.alignment = BoxContainer.ALIGNMENT_END
 		add_child(box)
-		var replay := TextureButton.new()
-		replay.name = "CornerReplay"
-		replay.texture_normal = IconFactory.get_icon("ear")
-		replay.ignore_texture_size = true
-		replay.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		replay.custom_minimum_size = Vector2(64, 64)
-		replay.pressed.connect(func(): if _session: _session.replay())
-		box.add_child(replay)
 		var parent := TextureButton.new()
 		parent.name = "CornerParent"
 		parent.texture_normal = IconFactory.get_icon("parent")
@@ -134,61 +115,7 @@ func _ensure_corner_controls(phase: String) -> void:
 		parent.button_down.connect(func(): _parent_press_ms = Time.get_ticks_msec())
 		parent.button_up.connect(_on_parent_released)
 		box.add_child(parent)
-	var corner: Control = $CornerControls
-	corner.visible = phase == "answer" or phase == "retry"
-	if has_node("CornerControls/CornerReplay"):
-		$CornerControls/CornerReplay.visible = phase == "answer" or phase == "retry"
-
-
-func _rebuild_slots(slots: Array) -> void:
-	_clear_slots()
-	for s in slots:
-		var holder := PanelContainer.new()
-		holder.custom_minimum_size = Vector2(88, 88)
-		var tex := TextureRect.new()
-		tex.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		tex.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tex.custom_minimum_size = Vector2(80, 80)
-		if typeof(s) == TYPE_DICTIONARY:
-			var icon := str(s.get("icon", ""))
-			var empty := bool(s.get("empty", false))
-			var ghost := bool(s.get("ghost", false))
-			if icon != "" and not empty:
-				tex.texture = IconFactory.get_icon(icon)
-				tex.modulate = Color(1, 1, 1, 0.45) if ghost else Color.WHITE
-			else:
-				tex.modulate = Color(1, 1, 1, 0.15)
-				tex.texture = IconFactory.get_icon("ear")
-		holder.add_child(tex)
-		slots_row.add_child(holder)
-
-
-func _rebuild_choices(choices: Array) -> void:
-	_building_ui = true
-	_clear_choices()
-	choices_grid.columns = 2 if choices.size() > 2 else maxi(1, choices.size())
-	for c in choices:
-		var id := ""
-		var icon := "ear"
-		var used := false
-		if typeof(c) == TYPE_DICTIONARY:
-			id = str(c.get("id", ""))
-			icon = str(c.get("icon", "ear"))
-			used = bool(c.get("used", false))
-		else:
-			id = str(c)
-			icon = str(c)
-		var btn := TextureButton.new()
-		btn.texture_normal = IconFactory.get_icon(icon)
-		btn.ignore_texture_size = true
-		btn.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		btn.custom_minimum_size = Vector2(132, 132)
-		btn.disabled = used
-		btn.modulate = Color(1, 1, 1, 0.35) if used else Color.WHITE
-		var captured := id
-		btn.pressed.connect(func(): _on_choice_pressed(captured))
-		choices_grid.add_child(btn)
-	_building_ui = false
+	$CornerControls.visible = phase == "answer" or phase == "retry" or phase == "present"
 
 
 func _clear_choices() -> void:
@@ -201,12 +128,6 @@ func _clear_slots() -> void:
 		child.queue_free()
 
 
-func _on_choice_pressed(id: String) -> void:
-	if _session == null or _building_ui or id == "":
-		return
-	_session.submit_choice(id)
-
-
 func _on_parent_released() -> void:
 	var held := Time.get_ticks_msec() - _parent_press_ms
 	if held < 1200:
@@ -214,7 +135,6 @@ func _on_parent_released() -> void:
 	var stimulus := str(_last_state.get("parent_text", ""))
 	var blurb := ""
 	if _quest:
-		# parent_blurb opcjonalnie z JSON — QuestDefinition może nie mieć pola; czytamy z raw.
 		blurb = _load_parent_blurb(_quest.id)
 	parent_overlay.open_with(stimulus, blurb, NoiseSettings.enabled)
 
