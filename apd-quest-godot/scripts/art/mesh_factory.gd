@@ -5,9 +5,14 @@ class_name MeshFactory
 
 static func mat(color: Color, roughness: float = 0.85, metallic: float = 0.0, emission: Color = Color(0, 0, 0, 0), emission_energy: float = 0.0) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
-	m.albedo_color = color
+	m.albedo_color = Color(color.r, color.g, color.b, 1.0)
 	m.roughness = roughness
 	m.metallic = metallic
+	# Single-sided opaque — prevents face/eyes reading through hair from behind.
+	m.cull_mode = BaseMaterial3D.CULL_BACK
+	m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	m.shading_mode = BaseMaterial3D.SHADING_MODE_PER_PIXEL
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
 	if emission.a > 0.0 or emission_energy > 0.0:
 		m.emission_enabled = true
 		m.emission = Color(emission.r, emission.g, emission.b)
@@ -18,10 +23,59 @@ static func mat(color: Color, roughness: float = 0.85, metallic: float = 0.0, em
 static func mat_textured(tex: Texture2D, color: Color = Color.WHITE, roughness: float = 0.9) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
 	m.albedo_texture = tex
-	m.albedo_color = color
+	m.albedo_color = Color(color.r, color.g, color.b, 1.0)
 	m.roughness = roughness
+	m.cull_mode = BaseMaterial3D.CULL_BACK
+	m.transparency = BaseMaterial3D.TRANSPARENCY_DISABLED
+	m.depth_draw_mode = BaseMaterial3D.DEPTH_DRAW_OPAQUE_ONLY
 	m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 	return m
+
+
+## Single-sided disc in XY, normal +Z. Godot front faces are clockwise; cull back → invisible from behind.
+static func face_disc(radius: float, segments: int = 16) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var normal := Vector3(0, 0, 1)
+	for i in segments:
+		var a0 := float(i) / float(segments) * TAU
+		var a1 := float(i + 1) / float(segments) * TAU
+		var p0 := Vector3(0, 0, 0)
+		var p1 := Vector3(cos(a0) * radius, sin(a0) * radius, 0)
+		var p2 := Vector3(cos(a1) * radius, sin(a1) * radius, 0)
+		# Clockwise when viewed from +Z: center → a1 → a0
+		st.set_normal(normal)
+		st.set_uv(Vector2(0.5, 0.5))
+		st.add_vertex(p0)
+		st.set_normal(normal)
+		st.set_uv(Vector2(cos(a1) * 0.5 + 0.5, sin(a1) * 0.5 + 0.5))
+		st.add_vertex(p2)
+		st.set_normal(normal)
+		st.set_uv(Vector2(cos(a0) * 0.5 + 0.5, sin(a0) * 0.5 + 0.5))
+		st.add_vertex(p1)
+	return st.commit()
+
+
+## Single-sided smile rect in XY, normal +Z (clockwise front faces).
+static func face_quad(size: Vector2) -> ArrayMesh:
+	var st := SurfaceTool.new()
+	st.begin(Mesh.PRIMITIVE_TRIANGLES)
+	var hx := size.x * 0.5
+	var hy := size.y * 0.5
+	var normal := Vector3(0, 0, 1)
+	var verts := [
+		Vector3(-hx, -hy, 0), Vector3(hx, hy, 0), Vector3(hx, -hy, 0),
+		Vector3(-hx, -hy, 0), Vector3(-hx, hy, 0), Vector3(hx, hy, 0),
+	]
+	var uvs := [
+		Vector2(0, 1), Vector2(1, 0), Vector2(1, 1),
+		Vector2(0, 1), Vector2(0, 0), Vector2(1, 0),
+	]
+	for i in verts.size():
+		st.set_normal(normal)
+		st.set_uv(uvs[i])
+		st.add_vertex(verts[i])
+	return st.commit()
 
 
 static func add_mesh(parent: Node3D, mesh: Mesh, material: Material, pos: Vector3 = Vector3.ZERO, scale := Vector3.ONE, rot_deg: Vector3 = Vector3.ZERO) -> MeshInstance3D:
