@@ -97,7 +97,10 @@ func _on_quest_started(quest: QuestDefinition) -> void:
 	add_child(_session)
 	_session.ui_changed.connect(_on_ui_changed)
 	_session.session_finished.connect(_on_session_finished)
-	NoiseSettings.set_enabled(false)
+	# Echo: szum opcjonalny — zostaw wybór rodzica z sesji (domyślnie OFF z JSON).
+	# Burza = „mowa w szumie” — włącz szum na starcie (rodzic może wyłączyć w overlay).
+	if str(quest.exercise_type) == "speech_in_noise":
+		NoiseSettings.set_enabled(true)
 	_session.start_from_quest(quest)
 
 

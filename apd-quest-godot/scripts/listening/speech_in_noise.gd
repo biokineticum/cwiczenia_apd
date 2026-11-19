@@ -32,10 +32,14 @@ func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
 	_speech = SpeechPlayer.new()
 	add_child(_noise)
 	add_child(_speech)
+	if not _noise.is_node_ready():
+		await _noise.ready
 	if _noise_on:
-		_noise.start(_noise_type, _relative_level)
-	print("[SpeechInNoise] \"%s\" illust=%s (walk pads)" % [target_sentence, target_illustration])
-	_present_then_ask()
+		await _noise.start(_noise_type, _relative_level)
+	print("[SpeechInNoise] \"%s\" illust=%s noise=%s (walk pads)" % [
+		target_sentence, target_illustration, _noise_on
+	])
+	await _present_then_ask()
 
 
 func submit_choice(illustration_id: String) -> void:
@@ -107,7 +111,7 @@ func set_noise_enabled(enabled: bool) -> void:
 	if _noise == null:
 		return
 	if enabled:
-		_noise.start(_noise_type, _relative_level)
+		await _noise.start(_noise_type, _relative_level)
 	else:
 		_noise.stop()
 

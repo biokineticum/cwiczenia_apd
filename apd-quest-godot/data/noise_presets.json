@@ -1,5 +1,5 @@
 {
-  "disclaimer": "Poziom szumu jest względny (trudność), nie kliniczny SNR w dB. Dla 5-latki start: wyłączony — rodzic włącza w overlay.",
+  "disclaimer": "Poziom szumu jest względny (trudność), nie kliniczny SNR w dB. Echo: start wyłączony — rodzic włącza w overlay. Burza: szum ON (mowa w szumie).",
   "types": [
     { "id": "white", "name": "Biały szum", "desc": "Równomierne widmo" },
     { "id": "pink", "name": "Różowy szum", "desc": "Naturalniejszy" },
@@ -8,5 +8,5 @@
   ],
   "default_enabled": false,
   "default_type": "pink",
-  "default_relative_level": 0.25
+  "default_relative_level": 0.55
 }
