@@ -62,6 +62,8 @@ func undo_last() -> void:
 	if _board and _board.has_method("reset_board"):
 		_board.reset_board()
 		_selected = PackedStringArray()
+		if _speech:
+			_speech.play_text("Od nowa. Weź obrazki znowu.")
 		_emit_world_answer_ui()
 
 
@@ -157,6 +159,8 @@ func _present_sequence(_first: bool) -> void:
 	_presenting = false
 	_speech.play_text("Twoja kolej. Wejdź w przedmiot, potem do kółka z cyfrą.")
 	await _speech.finished
+	_speech.play_text("Jak pomylisz, wejdź w pomarańczowe kółko od nowa.")
+	await _speech.finished
 	_spawn_board_and_unlock()
 
 
@@ -177,6 +181,8 @@ func _spawn_board_and_unlock() -> void:
 	_board.setup(sequence, sequence_icons, origin, _speech)
 	_board.arrangement_changed.connect(_on_board_changed)
 	_board.arrangement_complete.connect(_on_board_complete)
+	if _board.has_signal("board_reset"):
+		_board.board_reset.connect(_on_board_reset)
 	# Dziewczynka MUSI chodzić — odblokuj ruch.
 	QuestManager.movement_locked = false
 	_emit_world_answer_ui()
@@ -201,6 +207,11 @@ func _emit_world_answer_ui() -> void:
 
 func _on_board_changed(ids: PackedStringArray) -> void:
 	_selected = ids
+
+
+func _on_board_reset() -> void:
+	_selected = PackedStringArray()
+	_emit_world_answer_ui()
 
 
 func _on_board_complete(ids: PackedStringArray) -> void:

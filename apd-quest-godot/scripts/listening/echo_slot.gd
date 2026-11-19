@@ -103,6 +103,15 @@ func place_prop(prop: Area3D) -> void:
 	set_deferred("monitoring", false)
 
 
+func clear_fill() -> void:
+	filled_word_id = ""
+	_dwell_body = null
+	_dwell_time = 0.0
+	set_highlight(false)
+	if _digit_label:
+		_digit_label.modulate = Color(0.1, 0.2, 0.45)
+
+
 func _on_body_entered(body: Node3D) -> void:
 	if body.is_in_group("player") and is_empty():
 		_dwell_body = body
