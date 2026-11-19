@@ -1,13 +1,16 @@
 extends Node3D
 ## Echo 3D — layout wg konsultacji odbioru fizyki:
 ## 1 rząd propów + 1 linia slotów 1–4; minima spacing; wolniejszy chód w answer.
+## Pomarańczowe kółko „od nowa” (walk-in) czyści układ bez restartu questa.
 
 signal arrangement_complete(word_ids: PackedStringArray)
 signal arrangement_changed(word_ids: PackedStringArray)
+signal board_reset
 
 const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 const EchoPropScript = preload("res://scripts/listening/echo_prop.gd")
 const EchoSlotScript = preload("res://scripts/listening/echo_slot.gd")
+const WalkZone = preload("res://scripts/world/walk_confirm_zone.gd")
 
 ## Minima z konsultacji (środek–środek, metry świata).
 const PICKUP_SPACING := 2.8
@@ -17,6 +20,7 @@ const SLOT_Z := -1.6
 const PROP_Z := SLOT_Z + ROW_GAP # +3.0 m
 const ANSWER_SPEED_MUL := 0.6 # ×0.55–0.7 eksploracji
 const PICK_COOLDOWN_MS := 500
+const RESET_REARM_SEC := 0.85
 
 var _slots: Array = []
 var _props: Array = []
@@ -28,6 +32,8 @@ var _pick_ready_ms: int = 0
 var _saved_player_speed: float = -1.0
 var _saved_player_accel: float = -1.0
 var _overlap_pulse_ms: int = 0
+var _reset_zone: Area3D = null
+var _reset_busy: bool = false
 
 
 func setup(
@@ -41,6 +47,8 @@ func setup(
 	_slots.clear()
 	_props.clear()
 	_carry = null
+	_reset_zone = null
+	_reset_busy = false
 	_active = true
 	_pick_ready_ms = 0
 	position = origin
@@ -83,11 +91,12 @@ func setup(
 		prop.setup(str(sequence_ids[i]), str(sequence_icons[i]), pos)
 		prop.picked.connect(_on_prop_picked)
 		_props.append(prop)
+	_spawn_reset_zone(line_w)
 	_assert_no_area_overlap()
 	_refresh_highlights()
 	_set_props_pickable(true)
 	print(
-		"[EchoBoard] pickups Δ=%.1fm @z=%.1f | slots Δ=%.1fm @z=%.1f | row_gap=%.1fm | speed×%.2f"
+		"[EchoBoard] pickups Δ=%.1fm @z=%.1f | slots Δ=%.1fm @z=%.1f | row_gap=%.1fm | speed×%.2f | reset pad"
 		% [PICKUP_SPACING, PROP_Z, SLOT_SPACING, SLOT_Z, ROW_GAP, ANSWER_SPEED_MUL]
 	)
 
@@ -95,6 +104,10 @@ func setup(
 func teardown() -> void:
 	_active = false
 	_carry = null
+	_reset_busy = false
+	if _reset_zone and is_instance_valid(_reset_zone):
+		_reset_zone.set_armed(false)
+	_reset_zone = null
 	_apply_answer_speed(false)
 	_drop_carry_visual()
 	queue_free()
@@ -112,6 +125,15 @@ func is_complete() -> bool:
 		if s.is_empty():
 			return false
 	return true
+
+
+func has_attempt_progress() -> bool:
+	if _carry != null:
+		return true
+	for s in _slots:
+		if not s.is_empty():
+			return true
+	return false
 
 
 func force_arrange(sequence_ids: PackedStringArray) -> void:
@@ -139,8 +161,6 @@ func reset_board() -> void:
 	_carry = null
 	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
 	for s in _slots:
-		s.filled_word_id = ""
-		s.set_highlight(false)
 		for c in s.get_children():
 			if c is Area3D and c.has_method("reset_home"):
 				s.remove_child(c)
@@ -155,6 +175,11 @@ func reset_board() -> void:
 				c.visible = true
 				c.scale = Vector3.ONE
 				c.position = c._home
+		if s.has_method("clear_fill"):
+			s.clear_fill()
+		else:
+			s.filled_word_id = ""
+			s.set_highlight(false)
 	for p in _props:
 		var prop: Area3D = p as Area3D
 		if prop == null:
@@ -175,6 +200,55 @@ func reset_board() -> void:
 		prop.position = prop._home
 	_refresh_highlights()
 	_set_props_pickable(true)
+	arrangement_changed.emit(PackedStringArray())
+	board_reset.emit()
+
+
+func _spawn_reset_zone(line_w: float) -> void:
+	# Bok planszy — daleko od slotów/propów, żeby nie czyścić przypadkiem.
+	var zone: Area3D = WalkZone.new()
+	zone.name = "EchoResetPad"
+	add_child(zone)
+	var side_x := 0.5 * line_w + 2.2
+	var mid_z := (PROP_Z + SLOT_Z) * 0.5
+	zone.setup("undo", "undo", Vector3(side_x, 0.0, mid_z), Color(0.92, 0.62, 0.28))
+	zone.walked_in.connect(_on_reset_zone)
+	_reset_zone = zone
+
+
+func _on_reset_zone(_zone: Area3D) -> void:
+	call_deferred("_reset_from_walk_deferred")
+
+
+func _reset_from_walk_deferred() -> void:
+	if not _active or _reset_busy:
+		_rearm_reset_zone_later()
+		return
+	if not has_attempt_progress():
+		if _speech:
+			_speech.play_text("Tu możesz zacząć od nowa, jak pomylisz kolejność.")
+		_rearm_reset_zone_later()
+		return
+	_reset_busy = true
+	reset_board()
+	if _speech:
+		_speech.play_text("Od nowa. Weź obrazki znowu.")
+	_rearm_reset_zone_later()
+
+
+func _rearm_reset_zone_later() -> void:
+	# One-shot WalkZone — po zejściu / krótkiej przerwie znów aktywne.
+	var tree := get_tree()
+	if tree == null:
+		_reset_busy = false
+		return
+	await tree.create_timer(RESET_REARM_SEC).timeout
+	if not _active or not is_instance_valid(self):
+		return
+	_reset_busy = false
+	if _reset_zone and is_instance_valid(_reset_zone):
+		# Jeśli dziecko dalej stoi na padzie — czekaj na wyjście (set_armed czyści dwell).
+		_reset_zone.set_armed(true)
 
 
 func _on_prop_picked(prop: Area3D) -> void:
@@ -233,6 +307,8 @@ func _place_on_slot_deferred(slot: Area3D) -> void:
 	_pick_ready_ms = Time.get_ticks_msec() + PICK_COOLDOWN_MS
 	if is_complete():
 		_set_props_pickable(false)
+		if _reset_zone and is_instance_valid(_reset_zone):
+			_reset_zone.set_armed(false)
 		if _speech:
 			_speech.play_text("Brawo, wszystkie na miejscu.")
 		arrangement_complete.emit(get_placed_ids())

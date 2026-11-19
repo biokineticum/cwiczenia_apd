@@ -14,7 +14,7 @@ const DWELL_SEC := 0.18
 @export var radius: float = 0.55
 
 var choice_id: String = ""
-var kind: String = "accept" # accept | dismiss | choice | replay
+var kind: String = "accept" # accept | dismiss | choice | replay | undo
 var _dwell_body: Node3D = null
 var _dwell_t: float = 0.0
 var _armed: bool = true
@@ -53,8 +53,10 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 
 func set_armed(on: bool) -> void:
 	_armed = on
-	if not on:
-		_fired = true
+	_fired = not on
+	if on:
+		_dwell_body = null
+		_dwell_t = 0.0
 	set_deferred("monitoring", on)
 
 

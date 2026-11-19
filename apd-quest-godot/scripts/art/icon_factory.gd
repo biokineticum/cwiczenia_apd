@@ -58,8 +58,12 @@ static func _draw_icon(icon_id: String) -> ImageTexture:
 	var size := 128
 	var img := Image.create(size, size, false, Image.FORMAT_RGBA8)
 	img.fill(Color(0, 0, 0, 0))
-	# Tło kafelka
-	_fill_round_rect(img, 8, 8, size - 16, size - 16, Color(0.98, 0.95, 0.88, 1))
+	# Tło: ucho = miękki krąg (cue „słuchaj”); reszta = kafelek.
+	if icon_id == "ear":
+		_circle(img, 64, 64, 56, Color(0.55, 0.78, 0.95, 0.95))
+		_circle(img, 64, 64, 48, Color(0.92, 0.97, 1.0, 1))
+	else:
+		_fill_round_rect(img, 8, 8, size - 16, size - 16, Color(0.98, 0.95, 0.88, 1))
 	match icon_id:
 		"dog":
 			_ellipse(img, 64, 78, 36, 28, Color(0.72, 0.5, 0.28))
@@ -148,9 +152,15 @@ static func _draw_icon(icon_id: String) -> ImageTexture:
 			_rect(img, 36, 70, 8, 20, Color(0.45, 0.3, 0.15))
 			_circle(img, 90, 70, 14, Color(0.95, 0.45, 0.25))
 		"ear":
-			_ellipse(img, 64, 64, 28, 38, Color(0.95, 0.8, 0.7))
-			_ellipse(img, 64, 64, 14, 22, Color(0.9, 0.65, 0.6))
-			_circle(img, 64, 70, 8, Color(0.85, 0.55, 0.5))
+			# Boczny zarys ucha (nie koncentryczne owale) + łuki dźwięku.
+			_ellipse(img, 52, 64, 26, 40, Color(0.96, 0.78, 0.68))
+			_ellipse(img, 48, 64, 14, 26, Color(0.92, 0.62, 0.55))
+			_ellipse(img, 44, 70, 7, 12, Color(0.82, 0.48, 0.45))
+			_circle(img, 58, 42, 6, Color(0.96, 0.78, 0.68))
+			# Fale „słuchaj”
+			for i in 3:
+				var r := 18 + i * 10
+				_circle_outline(img, 88, 64, r, Color(0.35, 0.55, 0.85, 0.85 - float(i) * 0.2), 3)
 		"parent":
 			_circle(img, 64, 40, 16, Color(0.95, 0.8, 0.7))
 			_ellipse(img, 64, 78, 28, 26, Color(0.4, 0.55, 0.75))
@@ -201,6 +211,18 @@ static func _circle(img: Image, cx: int, cy: int, r: int, col: Color) -> void:
 	for yy in range(cy - r, cy + r + 1):
 		for xx in range(cx - r, cx + r + 1):
 			if (xx - cx) * (xx - cx) + (yy - cy) * (yy - cy) <= r * r:
+				if xx >= 0 and yy >= 0 and xx < img.get_width() and yy < img.get_height():
+					img.set_pixel(xx, yy, col)
+
+
+static func _circle_outline(img: Image, cx: int, cy: int, r: int, col: Color, thickness: int = 2) -> void:
+	var r2 := r * r
+	var inner := maxi(r - thickness, 0)
+	var inner2 := inner * inner
+	for yy in range(cy - r - 1, cy + r + 2):
+		for xx in range(cx - r - 1, cx + r + 2):
+			var d2 := (xx - cx) * (xx - cx) + (yy - cy) * (yy - cy)
+			if d2 <= r2 and d2 >= inner2:
 				if xx >= 0 and yy >= 0 and xx < img.get_width() and yy < img.get_height():
 					img.set_pixel(xx, yy, col)
 
