@@ -49,6 +49,8 @@ func _ready() -> void:
 func _on_quest_started(quest: QuestDefinition) -> void:
 	_quest = quest
 	visible = true
+	if has_node("Dim"):
+		$Dim.visible = false # do pierwszego _sync_dim — nie zasłaniaj świata
 	warm_feedback.visible = false
 	_clear_choices()
 	_clear_slots()
@@ -76,6 +78,10 @@ func _on_ui_changed(state: Dictionary) -> void:
 		$Panel.visible = true
 		_clear_choices() # nigdy nie buduj klikalnych choices
 
+	# P0-2 / PL-27: Dim tylko przy panelu flash (present/demo/retry/result).
+	# W answer / walk-board / Burza pady świat musi być jasny dla 5-latki.
+	_sync_dim(phase, world_board)
+
 	if flash_icon != "" and $Panel.visible:
 		ear_flash.texture = IconFactory.get_icon(flash_icon)
 		ear_flash.visible = true
@@ -92,6 +98,16 @@ func _on_ui_changed(state: Dictionary) -> void:
 		_show_warm_retry()
 	elif phase == "result" and bool(state.get("success", false)):
 		_show_warm_success()
+
+
+func _sync_dim(phase: String, world_board: bool) -> void:
+	if not has_node("Dim"):
+		return
+	var dim: CanvasItem = $Dim
+	# Walk / answer: zero dim. Flash panel phases may keep soft dim.
+	# Explicit bool: Godot 4.7 cannot infer := from `$Panel.visible` (Variant).
+	var walk_answer: bool = phase == "answer" or (world_board and not $Panel.visible)
+	dim.visible = not walk_answer and $Panel.visible
 
 
 func _ensure_parent_corner(phase: String) -> void:
@@ -178,6 +194,8 @@ func _on_session_finished(success: bool, detail: Dictionary) -> void:
 		_show_warm_retry()
 	await get_tree().create_timer(0.7).timeout
 	visible = false
+	if has_node("Dim"):
+		$Dim.visible = false
 	warm_feedback.visible = false
 	_clear_choices()
 	_clear_slots()

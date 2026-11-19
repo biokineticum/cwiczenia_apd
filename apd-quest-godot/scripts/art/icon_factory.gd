@@ -1,9 +1,14 @@
 extends RefCounted
 class_name IconFactory
 ## Ikony z PNG (assets/textures/icons/<id>.png) albo proceduralny fallback.
-## Zwraca Texture2D; cache w statycznym słowniku.
+## Zawsze zwraca Texture2D o rozmiarze CANONICAL_SIZE (nie surowy 1024 PNG).
+## Sprite3D: używaj sprite_pixel_size() — wysokość świata ≈ SPRITE_WORLD_HEIGHT.
 
 const ICONS_DIR := "res://assets/textures/icons/"
+## Wspólny rozmiar runtime (PNG #13 są 1024×1024; proceduralne rysowane 128→upscale).
+const CANONICAL_SIZE := 256
+## Docelowa wysokość Sprite3D w metrach (konsultacja fizyki §5: mesh ~0,8–1,2 m).
+const SPRITE_WORLD_HEIGHT := 1.15
 
 static var _cache: Dictionary = {}
 
@@ -18,21 +23,35 @@ static func get_icon(icon_id: String) -> Texture2D:
 	return tex
 
 
+## pixel_size dla Sprite3D tak, by CANONICAL_SIZE * pixel_size = SPRITE_WORLD_HEIGHT.
+static func sprite_pixel_size() -> float:
+	return SPRITE_WORLD_HEIGHT / float(CANONICAL_SIZE)
+
+
 static func _load_png_icon(icon_id: String) -> Texture2D:
 	if icon_id.is_empty() or icon_id.contains("..") or icon_id.contains("/") or icon_id.contains("\\"):
 		return null
 	var path := ICONS_DIR + icon_id + ".png"
+	var img: Image = null
 	if ResourceLoader.exists(path):
 		var res: Resource = load(path)
 		if res is Texture2D:
-			return res as Texture2D
-	# Bez .import (edytor jeszcze nie zaimportował) — wczytaj surowy PNG.
-	if FileAccess.file_exists(path):
-		var img := Image.new()
+			img = (res as Texture2D).get_image()
+	# Bez .import / get_image() niedostępny — wczytaj surowy PNG.
+	if img == null and FileAccess.file_exists(path):
+		img = Image.new()
 		var err := img.load(path)
-		if err == OK:
-			return ImageTexture.create_from_image(img)
-	return null
+		if err != OK:
+			return null
+	if img == null:
+		return null
+	return _texture_from_canonical_image(img)
+
+
+static func _texture_from_canonical_image(img: Image) -> ImageTexture:
+	if img.get_width() != CANONICAL_SIZE or img.get_height() != CANONICAL_SIZE:
+		img.resize(CANONICAL_SIZE, CANONICAL_SIZE, Image.INTERPOLATE_LANCZOS)
+	return ImageTexture.create_from_image(img)
 
 
 static func _draw_icon(icon_id: String) -> ImageTexture:
@@ -164,7 +183,8 @@ static func _draw_icon(icon_id: String) -> ImageTexture:
 		_:
 			_circle(img, 64, 64, 30, Color(0.7, 0.7, 0.75))
 			_circle(img, 64, 64, 12, Color(0.45, 0.45, 0.5))
-	return ImageTexture.create_from_image(img)
+	# Procedural 128 → kanoniczny rozmiar (spójny z PNG).
+	return _texture_from_canonical_image(img)
 
 
 static func _fill_round_rect(img: Image, x: int, y: int, w: int, h: int, col: Color) -> void:

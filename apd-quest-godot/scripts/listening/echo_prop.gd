@@ -40,7 +40,8 @@ func setup(p_word_id: String, p_icon_id: String, pos: Vector3) -> void:
 	)
 	var spr := Sprite3D.new()
 	spr.texture = IconFactory.get_icon(icon_id)
-	spr.pixel_size = 0.017
+	# ~1,15 m wysokości (IconFactory.CANONICAL_SIZE × pixel_size) — nie surowy 1024 PNG.
+	spr.pixel_size = IconFactory.sprite_pixel_size()
 	spr.position = Vector3(0, 0.72, 0)
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.shaded = false
