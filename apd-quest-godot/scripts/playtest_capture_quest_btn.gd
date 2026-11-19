@@ -1,6 +1,5 @@
 extends SceneTree
-## Zrzut: zielone play OBOK NPC — twarz i przycisk czytelne obok siebie.
-## APD_QUEST_SCREENSHOT=path.png
+## Chase-cam: child player approaching Echo; green play BESIDE her (same depth), face visible.
 
 
 func _initialize() -> void:
@@ -13,9 +12,10 @@ func _initialize() -> void:
 		quit(1)
 		return
 	qm.call("offer_quest", "npc_echo_word_seq")
+
 	var zone: Node3D = null
-	for _i in 50:
-		await create_timer(0.35).timeout
+	for _i in 55:
+		await create_timer(0.3).timeout
 		zone = _find_walk_zone(root)
 		if zone:
 			break
@@ -31,49 +31,50 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	var mid := (zone.global_position + npc.global_position) * 0.5
-	var across := zone.global_position - npc.global_position
-	across.y = 0.0
-	if across.length_squared() < 0.01:
-		across = Vector3.RIGHT
-	else:
-		across = across.normalized()
-	# Kamera prostopadle do osi NPC↔pad → w kadrze stoją OBOK siebie, nie jeden za drugim.
-	var back := Vector3(-across.z, 0.0, across.x)
-	if back.dot(Vector3(0, 0, 1)) < 0.0:
-		back = -back
-	player.global_position = mid + back * 4.6 + Vector3(0.0, 0.4, 0.0)
-	var look := mid - player.global_position
-	# pivot yaw: kamera patrzy −Z lokalnie → yaw = atan2(-look.x, -look.z)
+	# Podejście od +Z: Echo (lewo) i play (prawo od niej) na tej samej głębokości kadru.
+	var look_at := Vector3(
+		(npc.global_position.x + zone.global_position.x) * 0.5,
+		1.05,
+		npc.global_position.z
+	)
+	player.global_position = Vector3(look_at.x + 0.6, 0.35, npc.global_position.z + 7.2)
+	var look := look_at - player.global_position
 	player.set("_yaw", atan2(-look.x, -look.z))
-	player.set("_pitch", -0.12)
+	player.set("_pitch", -0.06)
 	if player.has_method("_apply_camera"):
 		player.call("_apply_camera")
+
 	var vis := player.get_node_or_null("Visual")
 	if vis:
-		vis.visible = false
+		vis.visible = true
+		vis.rotation.y = atan2(look.x, look.z)
+
+	var nvis := npc.get_node_or_null("Visual") as Node3D
+	if nvis:
+		var to_cam := player.global_position - npc.global_position
+		nvis.rotation.y = atan2(to_cam.x, to_cam.z)
+
+	var cam := player.get_node_or_null("CameraPivot/Camera3D") as Camera3D
+	if cam:
+		cam.current = true
+		cam.fov = 48.0
+		cam.position = Vector3(0.35, 1.05, 4.4)
+
 	await process_frame
-	await create_timer(0.4).timeout
+	await create_timer(0.5).timeout
 
 	var spr := _find_sprite3d(zone)
-	var ok_flags := false
-	if spr:
-		ok_flags = not bool(spr.no_depth_test)
-		print(
-			"[capture-quest-btn] sprite no_depth_test=%s render_priority=%s y=%.2f"
-			% [spr.no_depth_test, spr.render_priority, spr.position.y]
-		)
+	var ok_depth := spr != null and not bool(spr.no_depth_test)
 	var lateral := Vector2(
 		zone.global_position.x - npc.global_position.x,
 		zone.global_position.z - npc.global_position.z
 	).length()
-	print("[capture-quest-btn] pad_lateral_from_npc=%.2fm" % lateral)
-
+	print("[capture-quest-btn] lateral=%.2fm zone=%s npc=%s" % [
+		lateral, zone.global_position, npc.global_position
+	])
 	var storm := root.find_child("NpcStorm", true, false) as Node3D
-	var npc_sep := 0.0
-	if storm:
-		npc_sep = npc.global_position.distance_to(storm.global_position)
-		print("[capture-quest-btn] echo_storm_sep=%.1fm" % npc_sep)
+	var sep := npc.global_position.distance_to(storm.global_position) if storm else 0.0
+	print("[capture-quest-btn] echo_storm_sep=%.1fm" % sep)
 
 	var shot := OS.get_environment("APD_QUEST_SCREENSHOT")
 	if shot != "":
@@ -82,7 +83,7 @@ func _initialize() -> void:
 			img.save_png(shot)
 			print("[capture-quest-btn] saved %s" % shot)
 
-	var ok: bool = zone != null and ok_flags and lateral >= 2.5 and npc_sep >= 12.0
+	var ok := ok_depth and lateral >= 2.5 and lateral <= 4.5 and sep >= 30.0
 	print("[capture-quest-btn] RESULT=%s" % ("PASS" if ok else "FAIL"))
 	quit(0 if ok else 1)
 

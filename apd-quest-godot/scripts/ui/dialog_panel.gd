@@ -118,45 +118,35 @@ func _speak_lines(lines: PackedStringArray) -> void:
 
 func _spawn_walk_zones() -> void:
 	_clear_zones()
-	var player := _find_player()
 	var q: QuestDefinition = QuestManager.get_quest(_quest_id)
 	var npc := _find_quest_npc(q)
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
-	# Kotwica = NPC questa (pad OBOK niej), nie przed kamerą/przez głowę.
+	# Kotwica = NPC; padd'y na polanie od strony środka mapy (nie w drzewa / nie przez mesh).
 	var anchor := Vector3(0, 0.05, 2.0)
 	if npc:
 		anchor = npc.global_position
-	elif player:
-		anchor = player.global_position
-	var toward := Vector3(0, 0, 1)
-	if player:
-		toward = player.global_position - anchor
-		toward.y = 0.0
-		if toward.length_squared() < 0.01:
-			toward = Vector3(0, 0, 1)
-		else:
-			toward = toward.normalized()
-	# Bok względem osi gracz↔NPC — zielone i czerwone na bokach, nie na mesh.
-	var side := Vector3(-toward.z, 0.0, toward.x)
-	if side.length_squared() < 0.01:
-		side = Vector3.RIGHT
-	else:
-		side = side.normalized()
-	# Lekki bias od środka polany, żeby padd'y nie wpadały w drugiego NPC.
-	if npc and str(npc.get("npc_id")) == "npc_storm":
-		if side.dot(Vector3.RIGHT) < 0.0:
-			side = -side
-	elif side.dot(Vector3.LEFT) < 0.0:
-		side = -side
-	# Wyraźnie z boku (≥3 m) + tylko lekko ku graczowi — nie przed torsem w kadrze.
-	const SIDE_GO := 3.25
-	const SIDE_LEAVE := 3.55
-	const TOWARD := 0.55
-	var go_pos := anchor + side * SIDE_GO + toward * TOWARD
+	var npc_id := ""
+	if npc:
+		npc_id = str(npc.get("npc_id"))
+	elif q:
+		npc_id = str(q.npc_id)
+	# Echo na zachodzie → padd'y na wschód (+X) ku środkowi; Burza → na zachód (−X).
+	var inward := Vector3.RIGHT
+	if npc_id == "npc_storm":
+		inward = Vector3.LEFT
+	elif npc_id == "npc_echo":
+		inward = Vector3.RIGHT
+	elif anchor.x > 0.0:
+		inward = Vector3.LEFT
+	# 2–4 m czysto z boku (ten sam Z co NPC dla play) + close dalej wzdłuż Z.
+	const INWARD := 3.2
+	const ALONG_GO := 0.0
+	const ALONG_LEAVE := -2.8
+	var go_pos := anchor + inward * INWARD + Vector3(0.0, 0.0, ALONG_GO)
 	go_pos.y = 0.05
-	var leave_pos := anchor - side * SIDE_LEAVE + toward * TOWARD
+	var leave_pos := anchor + inward * INWARD + Vector3(0.0, 0.0, ALONG_LEAVE)
 	leave_pos.y = 0.05
 	var go: Area3D = WalkZone.new()
 	scene.add_child(go)

@@ -172,11 +172,11 @@ func _spawn_board_and_unlock() -> void:
 	_teardown_board()
 	_board = EchoBoardScript.new()
 	_board.name = "EchoBoard"
-	# Board przed Echo (w stronę środka polany) — nie nachodzi na NPC / padd'y oferty.
-	var origin := Vector3(-8.5, 0.0, 5.5)
+	# Board ku środkowi polany od Echo — osobna polanka, nie na padd'ach oferty.
+	var origin := Vector3(-12.0, 0.0, 5.0)
 	var echo_npc := _find_node_named("NpcEcho")
 	if echo_npc is Node3D:
-		origin = (echo_npc as Node3D).global_position + Vector3(0.0, 0.0, 4.2)
+		origin = (echo_npc as Node3D).global_position + Vector3(4.5, 0.0, 5.0)
 	var tree := get_tree()
 	if tree and tree.current_scene:
 		tree.current_scene.add_child(_board)
