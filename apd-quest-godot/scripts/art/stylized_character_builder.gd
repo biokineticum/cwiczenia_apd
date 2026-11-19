@@ -49,8 +49,12 @@ static func _build_girl(root: Node3D) -> void:
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), skin, Vector3(0.42, 0.72, 0.05))
 
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.23), skin, Vector3(0, 1.28, 0))
-	# Grzywka + czupryna
+	# Grzywka + czupryna (przód) + gęsty tył głowy (zatyka potylicę — bez oczu z tyłu)
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.25), hair, Vector3(0, 1.38, -0.03), Vector3(1.2, 0.85, 1.15))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.2), hair, Vector3(0, 1.33, -0.18), Vector3(1.15, 1.05, 1.2))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(-0.14, 1.3, -0.16))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0.14, 1.3, -0.16))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.11), hair, Vector3(0, 1.22, -0.2), Vector3(1.25, 0.85, 1.05))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(-0.1, 1.28, 0.18), Vector3(1.4, 0.55, 0.7))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0.1, 1.28, 0.18), Vector3(1.4, 0.55, 0.7))
 	# Warkocze z koralikami
@@ -61,7 +65,7 @@ static func _build_girl(root: Node3D) -> void:
 		MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), ribbon, Vector3(0.28 * side, 0.78, 0.03))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), ribbon, Vector3(0.0, 1.55, 0.06), Vector3(1.8, 0.65, 0.7))
 
-	_face(root, Vector3(0, 1.28, 0.2), white, iris, blush, true)
+	_face(root, Vector3(0, 1.28, 0.22), white, iris, blush, true)
 
 
 static func _build_echo(root: Node3D, accent: Color) -> void:
@@ -82,12 +86,13 @@ static func _build_echo(root: Node3D, accent: Color) -> void:
 	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.48), skin, Vector3(0.4, 1.0, 0), Vector3.ONE, Vector3(0, 0, -14))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), skin, Vector3(0, 1.4, 0))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.27), hair, Vector3(0, 1.52, -0.04), Vector3(1.25, 0.8, 1.2))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.18), hair, Vector3(0, 1.42, -0.2), Vector3(1.1, 1.0, 1.15))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0, 1.62, 0.05), Vector3(1.3, 0.7, 1.0))
 	# Orbity echa
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), trim, Vector3(0.4, 1.65, 0.12))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), trim, Vector3(-0.38, 1.7, 0.08))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), trim, Vector3(0.15, 1.85, -0.05))
-	_face(root, Vector3(0, 1.4, 0.21), white, iris, blush, false)
+	_face(root, Vector3(0, 1.4, 0.23), white, iris, blush, false)
 
 
 static func _build_storm(root: Node3D, accent: Color) -> void:
@@ -108,29 +113,36 @@ static func _build_storm(root: Node3D, accent: Color) -> void:
 	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.46), skin, Vector3(0.42, 1.02, 0), Vector3.ONE, Vector3(0, 0, -16))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), skin, Vector3(0, 1.42, 0))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.22), hair, Vector3(0, 1.55, -0.05), Vector3(1.35, 0.95, 1.25))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.17), hair, Vector3(0, 1.44, -0.2), Vector3(1.15, 1.0, 1.2))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.14), hair, Vector3(-0.22, 1.62, 0.02))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.13), hair, Vector3(0.24, 1.64, -0.02))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0.05, 1.78, 0.0))
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), lining, Vector3(0.08, 1.86, 0.06))
-	_face(root, Vector3(0, 1.42, 0.21), white, iris, blush, false)
+	_face(root, Vector3(0, 1.42, 0.23), white, iris, blush, false)
 
 
+## Twarz tylko z przodu: jednolite dyski (normał +Z) + cull back — z tyłu niewidoczne.
 static func _face(root: Node3D, head_pos: Vector3, white: Material, iris: Material, blush: Material, freckles: bool) -> void:
-	var eye_y := head_pos.y + 0.03
-	var eye_z := head_pos.z + 0.05
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), white, Vector3(-0.075, eye_y, eye_z))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), white, Vector3(0.075, eye_y, eye_z))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.022), iris, Vector3(-0.075, eye_y, eye_z + 0.028))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.022), iris, Vector3(0.075, eye_y, eye_z + 0.028))
+	var face := Node3D.new()
+	face.name = "FaceFront"
+	face.position = head_pos
+	root.add_child(face)
+
+	var eye_y := 0.03
+	var face_z := 0.02
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.04), white, Vector3(-0.075, eye_y, face_z))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.04), white, Vector3(0.075, eye_y, face_z))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.022), iris, Vector3(-0.075, eye_y, face_z + 0.006))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.022), iris, Vector3(0.075, eye_y, face_z + 0.006))
 	var pupil := MeshFactory.mat(Color(0.08, 0.08, 0.12), 0.3)
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.012), pupil, Vector3(-0.075, eye_y, eye_z + 0.04))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.012), pupil, Vector3(0.075, eye_y, eye_z + 0.04))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.035), blush, Vector3(-0.13, head_pos.y - 0.03, eye_z - 0.02), Vector3(1.3, 0.7, 0.7))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.035), blush, Vector3(0.13, head_pos.y - 0.03, eye_z - 0.02), Vector3(1.3, 0.7, 0.7))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.012), pupil, Vector3(-0.075, eye_y, face_z + 0.01))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.012), pupil, Vector3(0.075, eye_y, face_z + 0.01))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.032), blush, Vector3(-0.12, -0.03, face_z - 0.002), Vector3(1.25, 1.0, 1.0))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.032), blush, Vector3(0.12, -0.03, face_z - 0.002), Vector3(1.25, 1.0, 1.0))
 	var smile := MeshFactory.mat(Color(0.78, 0.35, 0.42), 0.55)
-	MeshFactory.add_mesh(root, MeshFactory.box(Vector3(0.11, 0.018, 0.02)), smile, Vector3(0, head_pos.y - 0.09, eye_z + 0.02))
+	MeshFactory.add_mesh(face, MeshFactory.face_quad(Vector2(0.11, 0.018)), smile, Vector3(0, -0.09, face_z + 0.004))
 	if freckles:
 		var f := MeshFactory.mat(Color(0.85, 0.5, 0.4), 0.8)
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.012), f, Vector3(-0.1, head_pos.y - 0.01, eye_z + 0.01))
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.01), f, Vector3(0.1, head_pos.y - 0.015, eye_z + 0.01))
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.01), f, Vector3(0.0, head_pos.y - 0.02, eye_z + 0.02))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.01), f, Vector3(-0.1, -0.01, face_z + 0.008))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.1, -0.015, face_z + 0.008))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.0, -0.02, face_z + 0.01))
