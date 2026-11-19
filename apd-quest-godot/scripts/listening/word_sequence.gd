@@ -39,9 +39,13 @@ func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
 	_speech = SpeechPlayer.new()
 	add_child(_noise)
 	add_child(_speech)
+	if not _noise.is_node_ready():
+		await _noise.ready
 	if _noise_on:
-		_noise.start(_noise_type, _relative_level)
-	print("[WordSequence] ids=%s labels=%s (3D board)" % [", ".join(sequence), ", ".join(sequence_labels)])
+		await _noise.start(_noise_type, _relative_level)
+	print("[WordSequence] ids=%s labels=%s noise=%s (3D board)" % [
+		", ".join(sequence), ", ".join(sequence_labels), _noise_on
+	])
 	await _demo_then_present()
 
 
@@ -81,7 +85,7 @@ func set_noise_enabled(enabled: bool) -> void:
 	if _noise == null:
 		return
 	if enabled:
-		_noise.start(_noise_type, _relative_level)
+		await _noise.start(_noise_type, _relative_level)
 	else:
 		_noise.stop()
 	_emit_world_answer_ui()

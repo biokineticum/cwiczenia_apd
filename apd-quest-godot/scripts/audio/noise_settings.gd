@@ -7,7 +7,7 @@ signal changed
 var enabled: bool = false
 var noise_type: String = "pink"
 ## 0.0–1.0 względna głośność szumu względem mowy (heurystyka, nie SNR).
-var relative_level: float = 0.35
+var relative_level: float = 0.55
 
 
 func _ready() -> void:
