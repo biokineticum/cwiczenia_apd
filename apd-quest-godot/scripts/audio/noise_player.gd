@@ -2,18 +2,21 @@ extends Node
 class_name NoisePlayer
 ## Proceduralny szum (white/pink/brown/babble) na busie Noise — pętla WAV (nie Generator).
 ## Poziom jest względny — to nie jest kliniczny SNR.
-## TTS idzie przez system (DisplayServer), więc szum musi być wyraźnie głośny w silniku.
+## TTS idzie przez system (DisplayServer): trzymaj szum CISZEJ niż mowa (~SNR-friendly).
+## Podczas TTS bus Noise jest dodatkowo duckowany (AudioBusSetup).
 
 @export var bus_name: String = "Noise"
 
 const SAMPLE_RATE := 22050
 const LOOP_SECONDS := 2.0
-## Dolny próg głośności gracza — przy włączonym szumie dziecko ma go wyraźnie słyszeć obok TTS.
-const MIN_AUDIBLE_LINEAR := 0.45
+## Dolny próg gdy szum ON — ledwo słyszalny, nie maskuje TTS.
+const MIN_AUDIBLE_LINEAR := 0.10
+## Domyślny poziom „pod mową” (~−15 dBFS względem pełnej skali playera).
+const DEFAULT_LEVEL := 0.18
 
 var _player: AudioStreamPlayer
 var _noise_type: String = "pink"
-var _relative_level: float = 0.45
+var _relative_level: float = DEFAULT_LEVEL
 var _active: bool = false
 
 
@@ -24,7 +27,7 @@ func _ready() -> void:
 	add_child(_player)
 
 
-func start(noise_type: String = "pink", relative_level: float = 0.45) -> void:
+func start(noise_type: String = "pink", relative_level: float = DEFAULT_LEVEL) -> void:
 	if not is_node_ready():
 		await ready
 	stop()
@@ -32,9 +35,12 @@ func start(noise_type: String = "pink", relative_level: float = 0.45) -> void:
 	_relative_level = clampf(relative_level, 0.05, 1.0)
 	_ensure_player()
 	_player.stream = _build_loop_stream(_noise_type)
-	# Bus ≈ pełny; głośność na playerze (jedna ścieżka atenuacji, nie bus×sample).
+	# Bus ≈ pełny (duck TTS osobno); głośność na playerze.
 	if AudioBusSetup:
 		AudioBusSetup.set_bus_linear_volume(bus_name, 1.0)
+		# Zachowaj duck jeśli TTS właśnie trwa.
+		if AudioBusSetup.is_noise_ducked():
+			AudioBusSetup.duck_noise(true)
 	_player.volume_linear = maxf(_relative_level, MIN_AUDIBLE_LINEAR)
 	_player.play()
 	_active = _player.playing
@@ -44,7 +50,7 @@ func start(noise_type: String = "pink", relative_level: float = 0.45) -> void:
 		_player.play()
 		_active = _player.playing
 	print(
-		"[NoisePlayer] start type=%s level=%.2f vol_linear=%.2f playing=%s (wav-loop)"
+		"[NoisePlayer] start type=%s level=%.2f vol_linear=%.2f playing=%s (wav-loop, under-speech)"
 		% [_noise_type, _relative_level, _player.volume_linear, _active]
 	)
 
@@ -57,6 +63,12 @@ func stop() -> void:
 
 func is_playing() -> bool:
 	return _active and _player != null and _player.playing
+
+
+func get_volume_linear() -> float:
+	if _player == null or not is_instance_valid(_player):
+		return 0.0
+	return _player.volume_linear
 
 
 func _ensure_player() -> void:
