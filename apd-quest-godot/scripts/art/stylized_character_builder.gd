@@ -49,23 +49,23 @@ static func _build_girl(root: Node3D) -> void:
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), skin, Vector3(0.42, 0.72, 0.05))
 
 	MeshFactory.add_mesh(root, MeshFactory.sphere(0.23), skin, Vector3(0, 1.28, 0))
-	# Grzywka + czupryna (przód) + gęsty tył głowy (zatyka potylicę — bez oczu z tyłu)
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.25), hair, Vector3(0, 1.38, -0.03), Vector3(1.2, 0.85, 1.15))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.2), hair, Vector3(0, 1.33, -0.18), Vector3(1.15, 1.05, 1.2))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(-0.14, 1.3, -0.16))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0.14, 1.3, -0.16))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.11), hair, Vector3(0, 1.22, -0.2), Vector3(1.25, 0.85, 1.05))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(-0.1, 1.28, 0.18), Vector3(1.4, 0.55, 0.7))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0.1, 1.28, 0.18), Vector3(1.4, 0.55, 0.7))
+	# Włosy: czubek/tył (−Z) gęsty; grzywka wysoko nad oczami (+Z) — nie zasłania twarzy
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), hair, Vector3(0, 1.42, -0.06), Vector3(1.15, 0.75, 1.0))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.2), hair, Vector3(0, 1.34, -0.2), Vector3(1.15, 1.05, 1.15))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(-0.14, 1.3, -0.18))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0.14, 1.3, -0.18))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0, 1.2, -0.22), Vector3(1.3, 0.9, 1.1))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.08), hair, Vector3(-0.09, 1.43, 0.12), Vector3(1.3, 0.4, 0.5))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.08), hair, Vector3(0.09, 1.43, 0.12), Vector3(1.3, 0.4, 0.5))
 	# Warkocze z koralikami
 	for side in [-1.0, 1.0]:
 		MeshFactory.add_mesh(root, MeshFactory.sphere(0.085), hair, Vector3(0.22 * side, 1.12, -0.02))
 		MeshFactory.add_mesh(root, MeshFactory.sphere(0.075), hair, Vector3(0.26 * side, 0.98, 0.0))
 		MeshFactory.add_mesh(root, MeshFactory.sphere(0.065), hair, Vector3(0.28 * side, 0.86, 0.02))
 		MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), ribbon, Vector3(0.28 * side, 0.78, 0.03))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), ribbon, Vector3(0.0, 1.55, 0.06), Vector3(1.8, 0.65, 0.7))
+	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), ribbon, Vector3(0.0, 1.55, -0.02), Vector3(1.8, 0.65, 0.7))
 
-	_face(root, Vector3(0, 1.28, 0.22), white, iris, blush, true)
+	_face(root, Vector3(0, 1.28, 0.235), white, iris, blush, true)
 
 
 static func _build_echo(root: Node3D, accent: Color) -> void:
@@ -121,28 +121,30 @@ static func _build_storm(root: Node3D, accent: Color) -> void:
 	_face(root, Vector3(0, 1.42, 0.23), white, iris, blush, false)
 
 
-## Twarz tylko z przodu: jednolite dyski (normał +Z) + cull back — z tyłu niewidoczne.
+## Twarz tylko z przodu (+Z): dyski + cull back. Z tyłu niewidoczne (normał +Z).
 static func _face(root: Node3D, head_pos: Vector3, white: Material, iris: Material, blush: Material, freckles: bool) -> void:
 	var face := Node3D.new()
 	face.name = "FaceFront"
 	face.position = head_pos
 	root.add_child(face)
 
-	var eye_y := 0.03
-	var face_z := 0.02
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.04), white, Vector3(-0.075, eye_y, face_z))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.04), white, Vector3(0.075, eye_y, face_z))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.022), iris, Vector3(-0.075, eye_y, face_z + 0.006))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.022), iris, Vector3(0.075, eye_y, face_z + 0.006))
+	var eye_y := 0.02
+	var face_z := 0.012
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.038), white, Vector3(-0.07, eye_y, face_z))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.038), white, Vector3(0.07, eye_y, face_z))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.02), iris, Vector3(-0.07, eye_y, face_z + 0.004))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.02), iris, Vector3(0.07, eye_y, face_z + 0.004))
 	var pupil := MeshFactory.mat(Color(0.08, 0.08, 0.12), 0.3)
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.012), pupil, Vector3(-0.075, eye_y, face_z + 0.01))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.012), pupil, Vector3(0.075, eye_y, face_z + 0.01))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.032), blush, Vector3(-0.12, -0.03, face_z - 0.002), Vector3(1.25, 1.0, 1.0))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.032), blush, Vector3(0.12, -0.03, face_z - 0.002), Vector3(1.25, 1.0, 1.0))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.011), pupil, Vector3(-0.07, eye_y, face_z + 0.007))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.011), pupil, Vector3(0.07, eye_y, face_z + 0.007))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.03), blush, Vector3(-0.11, -0.035, face_z - 0.002), Vector3(1.2, 1.0, 1.0))
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.03), blush, Vector3(0.11, -0.035, face_z - 0.002), Vector3(1.2, 1.0, 1.0))
+	var nose := MeshFactory.mat(Color(1.0, 0.78, 0.7), 0.7)
+	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.016), nose, Vector3(0.0, -0.02, face_z + 0.01))
 	var smile := MeshFactory.mat(Color(0.78, 0.35, 0.42), 0.55)
-	MeshFactory.add_mesh(face, MeshFactory.face_quad(Vector2(0.11, 0.018)), smile, Vector3(0, -0.09, face_z + 0.004))
+	MeshFactory.add_mesh(face, MeshFactory.face_quad(Vector2(0.1, 0.016)), smile, Vector3(0, -0.085, face_z + 0.004))
 	if freckles:
 		var f := MeshFactory.mat(Color(0.85, 0.5, 0.4), 0.8)
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.01), f, Vector3(-0.1, -0.01, face_z + 0.008))
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.1, -0.015, face_z + 0.008))
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.0, -0.02, face_z + 0.01))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.01), f, Vector3(-0.095, -0.015, face_z + 0.006))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.095, -0.02, face_z + 0.006))
+		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.0, -0.04, face_z + 0.008))

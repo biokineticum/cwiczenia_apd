@@ -21,8 +21,9 @@ func _initialize() -> void:
 		player.call("_apply_camera")
 
 	var visual: Node3D = player.get_node_or_null("Visual")
+	# Default after player_controller fix: face away from cam (world −Z) — live repro.
 	if visual:
-		visual.rotation.y = 0.0
+		visual.rotation.y = PI
 
 	var pivot: Node3D = player.get_node_or_null("CameraPivot")
 	var cam: Camera3D = player.get_node_or_null("CameraPivot/Camera3D") as Camera3D
@@ -33,12 +34,13 @@ func _initialize() -> void:
 		cam.fov = 38.0
 
 	await create_timer(0.25).timeout
-	_save(OS.get_environment("APD_QUEST_SHOT_FRONT"), "front")
+	# BACK first — camera behind girl on the path (must be hair only, no eyes)
+	_save(OS.get_environment("APD_QUEST_SHOT_BACK"), "back")
 
 	if visual:
-		visual.rotation.y = PI
+		visual.rotation.y = 0.0 # face camera
 	await create_timer(0.3).timeout
-	_save(OS.get_environment("APD_QUEST_SHOT_BACK"), "back")
+	_save(OS.get_environment("APD_QUEST_SHOT_FRONT"), "front")
 	quit(0)
 
 
