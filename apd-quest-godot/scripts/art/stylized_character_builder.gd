@@ -1,7 +1,7 @@
 extends RefCounted
 class_name StylizedCharacterBuilder
-## Characters from imported CC0 GLB meshes (not PrimitiveMesh / ArrayMesh toys).
-## Player: Grab3D Child (CC0). Echo/Storm: Quaternius Modular Women (CC0).
+## Characters from imported CC0 Grab3D GLBs (same fidelity family).
+## Player: Child. Echo: Elf. Burza/Storm: Witch.
 ## Keep FaceFront marker +Z; gameplay/collision unchanged.
 
 enum Style { GIRL, ECHO, STORM }
@@ -10,10 +10,12 @@ const PATH_GIRL := "res://assets/models/characters/player_girl.glb"
 const PATH_ECHO := "res://assets/models/characters/npc_echo.glb"
 const PATH_STORM := "res://assets/models/characters/npc_storm.glb"
 
-## Child ~1.30 m → match prior ~1.5 collision capsule feel.
+## Child ~1.30 m → ~1.46 m after scale (collision capsule feel).
 const SCALE_GIRL := 1.12
-## Quaternius adults ~1.85–2.05 m → ~child height beside Grab3D child.
-const SCALE_NPC := 0.68
+## Elf ~1.72 m → ~1.45 m
+const SCALE_ECHO := 0.84
+## Witch ~1.68 m → ~1.45 m
+const SCALE_STORM := 0.86
 
 
 static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
@@ -27,10 +29,10 @@ static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 			scale = SCALE_GIRL
 		Style.ECHO:
 			path = PATH_ECHO
-			scale = SCALE_NPC
+			scale = SCALE_ECHO
 		Style.STORM:
 			path = PATH_STORM
-			scale = SCALE_NPC
+			scale = SCALE_STORM
 
 	var body := _load_glb(path)
 	if body == null:
@@ -39,15 +41,14 @@ static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 
 	body.name = "BodyMesh"
 	body.scale = Vector3.ONE * scale
-	# Imported meshes face +Z already (Grab3D child / Quaternius).
+	# Grab3D meshes face +Z in A-pose.
 	root.add_child(body)
 
 	if style == Style.ECHO and accent != Color.WHITE:
-		_tint_meshes(body, accent, 0.35)
+		_tint_meshes(body, accent, 0.22)
 	elif style == Style.STORM and accent != Color.WHITE:
-		_tint_meshes(body, accent, 0.25)
+		_tint_meshes(body, accent, 0.18)
 
-	# Explicit front marker for debug / yaw conventions (PR #17).
 	var face_mark := Node3D.new()
 	face_mark.name = "FaceFront"
 	face_mark.position = Vector3(0.0, 1.15 * scale, 0.12 * scale)
