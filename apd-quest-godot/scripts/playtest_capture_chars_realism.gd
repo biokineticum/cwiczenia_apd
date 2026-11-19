@@ -64,27 +64,27 @@ func _initialize() -> void:
 	await process_frame
 	await process_frame
 
-	# Front (+Z face toward camera)
-	_aim_fullbody(cam, Vector3(0.0, 0.85, 2.4), Vector3(0.0, 0.85, 0.0))
+	# Front (+Z face toward camera) — imported child ~1.45 m after scale
+	_aim_fullbody(cam, Vector3(0.0, 0.9, 2.9), Vector3(0.0, 0.85, 0.0))
 	await process_frame
 	await create_timer(0.35).timeout
 	_save_shot(OS.get_environment("APD_QUEST_SHOT_FRONT"), "front")
 
-	# Back
+	# Back — hair/backpack only; no face
 	girl.rotation.y = PI
 	await process_frame
 	await create_timer(0.3).timeout
 	_save_shot(OS.get_environment("APD_QUEST_SHOT_BACK"), "back")
 
-	# Girl 3/4 + Echo NPC front (both readable)
-	girl.rotation.y = -0.45
-	girl.position = Vector3(-0.85, 0, 0)
+	# Girl 3/4 + Echo NPC (imported Quaternius Woman in Dress, scaled down)
+	girl.rotation.y = -0.35
+	girl.position = Vector3(-0.95, 0, 0)
 	var echo: Node3D = builder.build(builder.Style.ECHO)
 	echo.name = "EchoVisual"
-	echo.position = Vector3(0.85, 0, 0)
-	echo.rotation.y = 0.25
+	echo.position = Vector3(0.95, 0, 0)
+	echo.rotation.y = 0.15
 	world.add_child(echo)
-	_aim_fullbody(cam, Vector3(0.0, 0.95, 3.15), Vector3(0.0, 0.9, 0.0))
+	_aim_fullbody(cam, Vector3(0.0, 0.95, 3.4), Vector3(0.0, 0.85, 0.0))
 	await process_frame
 	await create_timer(0.35).timeout
 	_save_shot(OS.get_environment("APD_QUEST_SHOT_NPC"), "npc")
