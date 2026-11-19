@@ -105,7 +105,8 @@ func _sync_dim(phase: String, world_board: bool) -> void:
 		return
 	var dim: CanvasItem = $Dim
 	# Walk / answer: zero dim. Flash panel phases may keep soft dim.
-	var walk_answer := phase == "answer" or (world_board and not $Panel.visible)
+	# Explicit bool: Godot 4.7 cannot infer := from `$Panel.visible` (Variant).
+	var walk_answer: bool = phase == "answer" or (world_board and not $Panel.visible)
 	dim.visible = not walk_answer and $Panel.visible
 
 
