@@ -44,12 +44,36 @@ func _initialize() -> void:
 	if ill == "" or sentence == "":
 		ok = false
 
-	# Icon factory
+	# Icon factory — PNG i procedural muszą być w CANONICAL_SIZE (nie surowy 1024).
 	var tex = IconFactory.get_icon("dog")
 	if tex == null:
 		ok = false
+	elif tex.get_width() != IconFactory.CANONICAL_SIZE or tex.get_height() != IconFactory.CANONICAL_SIZE:
+		push_error(
+			"[smoke] IconFactory dog size %dx%d (oczekiwane %d)"
+			% [tex.get_width(), tex.get_height(), IconFactory.CANONICAL_SIZE]
+		)
+		ok = false
 	else:
-		print("[smoke] IconFactory dog ok")
+		print("[smoke] IconFactory dog ok %dx%d" % [tex.get_width(), tex.get_height()])
+	var scene_tex = IconFactory.get_icon("scene_pies_park")
+	if scene_tex == null:
+		push_error("[smoke] brak scene_pies_park")
+		ok = false
+	elif scene_tex.get_width() != IconFactory.CANONICAL_SIZE:
+		push_error(
+			"[smoke] scene_pies_park size %d (oczekiwane %d)"
+			% [scene_tex.get_width(), IconFactory.CANONICAL_SIZE]
+		)
+		ok = false
+	else:
+		print("[smoke] IconFactory scene_pies_park ok %dx%d" % [scene_tex.get_width(), scene_tex.get_height()])
+	var px := IconFactory.sprite_pixel_size()
+	var world_h := float(IconFactory.CANONICAL_SIZE) * px
+	print("[smoke] sprite world height ≈ %.2fm (pixel_size=%.5f)" % [world_h, px])
+	if world_h < 0.8 or world_h > 1.4:
+		push_error("[smoke] sprite world height poza zakresem konsultacji 0.8–1.2m (±luz)")
+		ok = false
 
 	print("[smoke] RESULT=%s" % ("PASS" if ok else "FAIL"))
 	quit(0 if ok else 1)

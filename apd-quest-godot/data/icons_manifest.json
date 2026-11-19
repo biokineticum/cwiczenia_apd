@@ -1,5 +1,5 @@
 {
-  "note": "icon_id → PNG w assets/textures/icons/<id>.png (IconFactory ładuje plik; brak = proceduralny fallback). scene_* = pełne scenki Burza; reszta = symbole Echo/UI.",
+  "note": "icon_id → PNG w assets/textures/icons/<id>.png. IconFactory downscale do CANONICAL_SIZE 256 przed cache (źródła mogą być 1024). Brak pliku = proceduralny fallback. scene_* = Burza; reszta = Echo/UI.",
   "icons": [
     "scene_pies_park", "scene_kot_spi", "scene_dom_kwiat", "scene_ptak_slonce",
     "scene_deszcz_woda", "scene_jablko", "scene_pilka", "scene_auto",

@@ -41,7 +41,8 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 	MeshFactory.add_mesh(self, MeshFactory.cylinder(radius * 0.9, radius, 0.1, 16), mat, Vector3(0, 0.05, 0))
 	var spr := Sprite3D.new()
 	spr.texture = IconFactory.get_icon(icon_id)
-	spr.pixel_size = 0.016
+	# Kanoniczny pixel_size: pad czytelny dla 5-latki, nie ~17 m z surowego 1024.
+	spr.pixel_size = IconFactory.sprite_pixel_size()
 	spr.position = Vector3(0, 0.75, 0)
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.shaded = false
