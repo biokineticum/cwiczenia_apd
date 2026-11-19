@@ -1,6 +1,6 @@
 extends Control
 ## Overlay: dla dziecka bez klików — Echo/Burza = świat 3D + TTS.
-## Present/demo: miękki „słuchaj” u góry (ucho), NIE tajemnicze karty na środku.
+## Present/demo: tylko TTS (+ lekki dim) — bez abstrakcyjnej ikony ucha / EarFlash.
 ## Parent = tylko long-press w rogu. Reset sekwencji = pomarańczowe kółko 3D (walk).
 
 const QuestDefinition = preload("res://scripts/quest/quest_definition.gd")
@@ -43,33 +43,19 @@ func _ready() -> void:
 	_strip_panel_chrome()
 	if parent_overlay.has_signal("noise_toggled"):
 		parent_overlay.noise_toggled.connect(_on_parent_noise)
-	ear_flash.texture = IconFactory.get_icon("ear")
-	ear_flash.custom_minimum_size = Vector2(112, 112)
+	# EarFlash usunięty z UX — node zostaje w scenie, zawsze ukryty.
+	ear_flash.visible = false
+	ear_flash.texture = null
 	warm_feedback.visible = false
 
 
 func _strip_panel_chrome() -> void:
-	# Bez kremowej karty PanelContainer — tylko ikona „słuchaj”.
+	# Bez kremowej karty PanelContainer.
 	var empty := StyleBoxEmpty.new()
 	$Panel.add_theme_stylebox_override("panel", empty)
 	$Panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if has_node("Panel/VBox"):
 		$Panel/VBox.mouse_filter = Control.MOUSE_FILTER_IGNORE
-
-
-func _layout_listen_cue() -> void:
-	# Ucho u góry środka — nie stack kart na środku ekranu.
-	var panel: Control = $Panel
-	panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	panel.anchor_left = 0.5
-	panel.anchor_right = 0.5
-	panel.anchor_top = 0.0
-	panel.anchor_bottom = 0.0
-	panel.offset_left = -80.0
-	panel.offset_right = 80.0
-	panel.offset_top = 18.0
-	panel.offset_bottom = 150.0
-	panel.grow_horizontal = Control.GROW_DIRECTION_BOTH
 
 
 func _layout_feedback_cue() -> void:
@@ -91,6 +77,7 @@ func _on_quest_started(quest: QuestDefinition) -> void:
 	if has_node("Dim"):
 		$Dim.visible = false # do pierwszego _sync_dim — nie zasłaniaj świata
 	warm_feedback.visible = false
+	ear_flash.visible = false
 	_clear_choices()
 	_clear_slots()
 	_session = ListeningSession.new()
@@ -108,21 +95,21 @@ func _on_ui_changed(state: Dictionary) -> void:
 	_last_state = state
 	var phase := str(state.get("phase", ""))
 	var world_board := bool(state.get("world_board", false))
-	var flash_icon := str(state.get("flash_icon", ""))
-	# Center Controls zawsze ukryte — zero stacku „ucho + osoba”.
+	# Center Controls zawsze ukryte — zero stacku ikon.
 	controls.visible = false
 	replay_btn.visible = false
 	undo_btn.visible = false
 	parent_btn.visible = false
+	# Nigdy nie pokazuj abstrakcyjnego ucha / flash_icon — TTS wystarczy.
+	ear_flash.visible = false
 
 	if phase == "answer" or (world_board and phase != "present" and phase != "demo" and phase != "retry" and phase != "result"):
 		$Panel.visible = false
 		_clear_choices()
 		_clear_slots()
 	elif phase == "present" or phase == "demo":
-		# Tylko miękki cue „słuchaj” — TTS prowadzi; świat prawie widoczny.
-		_layout_listen_cue()
-		$Panel.visible = true
+		# Tylko TTS (+ lekki dim) — bez ikony „słuchaj” / EarFlash.
+		$Panel.visible = false
 		_clear_choices()
 		_clear_slots()
 		warm_feedback.visible = false
@@ -136,17 +123,6 @@ func _on_ui_changed(state: Dictionary) -> void:
 		_clear_choices()
 
 	_sync_dim(phase, world_board)
-
-	if phase == "present" or phase == "demo":
-		ear_flash.visible = true
-		# Zawsze ucho jako „słuchaj” — nie abstrakcyjne flash_icon z poolu słów.
-		ear_flash.texture = IconFactory.get_icon("ear")
-	elif flash_icon != "" and $Panel.visible and phase != "answer":
-		ear_flash.texture = IconFactory.get_icon(flash_icon)
-		ear_flash.visible = phase != "retry" and phase != "result"
-	else:
-		ear_flash.visible = false
-
 	_ensure_parent_corner(phase)
 
 	if phase == "retry" or (phase == "result" and not bool(state.get("success", true))):
@@ -160,13 +136,13 @@ func _sync_dim(phase: String, world_board: bool) -> void:
 		return
 	var dim: ColorRect = $Dim
 	# Walk / answer: zero dim. Present/demo: lekki cień (nie modalna karta).
-	var walk_answer: bool = phase == "answer" or (world_board and not $Panel.visible)
+	var walk_answer: bool = phase == "answer" or (world_board and not $Panel.visible and phase != "present" and phase != "demo")
 	if walk_answer:
 		dim.visible = false
 		return
 	if phase == "present" or phase == "demo":
 		dim.visible = true
-		dim.color = Color(0.08, 0.16, 0.14, 0.28)
+		dim.color = Color(0.08, 0.16, 0.14, 0.22)
 		return
 	if phase == "retry" or phase == "result":
 		dim.visible = true
@@ -177,7 +153,7 @@ func _sync_dim(phase: String, world_board: bool) -> void:
 
 
 func _ensure_parent_corner(phase: String) -> void:
-	# Tylko long-press rodzica — w rogu, nie na środku pod uchem.
+	# Tylko long-press rodzica — w rogu.
 	if not has_node("CornerControls"):
 		var box := HBoxContainer.new()
 		box.name = "CornerControls"
@@ -243,7 +219,8 @@ func _on_parent_noise(enabled: bool) -> void:
 
 func _show_warm_retry() -> void:
 	ear_flash.visible = false
-	warm_feedback.texture = IconFactory.get_icon("ear")
+	# Bez abstrakcyjnego ucha — „spróbuj jeszcze” = undo, nie concentric ear.
+	warm_feedback.texture = IconFactory.get_icon("undo")
 	warm_feedback.modulate = Color(1.0, 0.85, 0.55, 1)
 	warm_feedback.visible = true
 
@@ -266,6 +243,7 @@ func _on_session_finished(success: bool, detail: Dictionary) -> void:
 	if has_node("Dim"):
 		$Dim.visible = false
 	warm_feedback.visible = false
+	ear_flash.visible = false
 	_clear_choices()
 	_clear_slots()
 	if parent_overlay.visible:

@@ -96,11 +96,11 @@ func show_dialog(lines: PackedStringArray, quest_id: String, phase: String) -> v
 
 func _npc_icon_for(q: QuestDefinition) -> String:
 	if q == null:
-		return "ear"
+		return "talk"
 	if q.npc_id == "npc_storm":
 		return "rain"
 	if q.npc_id == "npc_echo":
-		return "ear"
+		return "talk"
 	return "play"
 
 

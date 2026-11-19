@@ -19,6 +19,9 @@ var _dwell_body: Node3D = null
 var _dwell_t: float = 0.0
 var _armed: bool = true
 var _fired: bool = false
+var _icon: Sprite3D = null
+const _ICON_BASE_Y := 1.05
+const _ICON_CAM_BIAS := 0.45
 
 
 func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color(0.35, 0.75, 0.45), p_choice: String = "") -> void:
@@ -39,16 +42,42 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 	add_child(shape)
 	var mat := MeshFactory.mat(accent, 0.65, 0.0, accent, 0.45)
 	MeshFactory.add_mesh(self, MeshFactory.cylinder(radius * 0.9, radius, 0.1, 16), mat, Vector3(0, 0.05, 0))
-	var spr := Sprite3D.new()
-	spr.texture = IconFactory.get_icon(icon_id)
+	_icon = Sprite3D.new()
+	_icon.texture = IconFactory.get_icon(icon_id)
 	# Kanoniczny pixel_size: pad czytelny dla 5-latki, nie ~17 m z surowego 1024.
-	spr.pixel_size = IconFactory.sprite_pixel_size()
-	spr.position = Vector3(0, 0.75, 0)
-	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	spr.shaded = false
-	add_child(spr)
+	_icon.pixel_size = IconFactory.sprite_pixel_size()
+	_icon.position = Vector3(0, _ICON_BASE_Y, 0)
+	_icon.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	_icon.shaded = false
+	_icon.double_sided = true
+	# Zawsze przed meshami postaci: bez depth test + wysoki priorytet + offset do kamery.
+	_icon.no_depth_test = true
+	_icon.render_priority = 32
+	_icon.sorting_offset = 32.0
+	_icon.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
+	_icon.transparent = true
+	_icon.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_icon.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
+	add_child(_icon)
+	set_process(true)
 	body_entered.connect(_on_enter)
 	body_exited.connect(_on_exit)
+
+
+func _process(_delta: float) -> void:
+	if _icon == null or not is_instance_valid(_icon):
+		return
+	var cam := get_viewport().get_camera_3d()
+	if cam == null:
+		_icon.position = Vector3(0, _ICON_BASE_Y, 0)
+		return
+	var toward := cam.global_position - global_position
+	if toward.length_squared() < 0.0001:
+		_icon.position = Vector3(0, _ICON_BASE_Y, 0)
+		return
+	# Lokalny offset w stronę kamery — fizycznie bliżej oka niż NPC za pad'em.
+	var local_bias := global_transform.basis.inverse() * (toward.normalized() * _ICON_CAM_BIAS)
+	_icon.position = Vector3(0, _ICON_BASE_Y, 0) + local_bias
 
 
 func set_armed(on: bool) -> void:
