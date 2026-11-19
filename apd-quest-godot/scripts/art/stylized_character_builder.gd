@@ -1,150 +1,99 @@
 extends RefCounted
 class_name StylizedCharacterBuilder
-## Bajkowe postacie: falowana spódnica, fryzura z kępek, twarz, buty — nie sama capsule.
-
-const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
+## Characters from imported CC0 Grab3D GLBs (same fidelity family).
+## Player: Child. Echo: Elf. Burza/Storm: Witch.
+## Keep FaceFront marker +Z; gameplay/collision unchanged.
 
 enum Style { GIRL, ECHO, STORM }
+
+const PATH_GIRL := "res://assets/models/characters/player_girl.glb"
+const PATH_ECHO := "res://assets/models/characters/npc_echo.glb"
+const PATH_STORM := "res://assets/models/characters/npc_storm.glb"
+
+## Child ~1.30 m → ~1.46 m after scale (collision capsule feel).
+const SCALE_GIRL := 1.12
+## Elf ~1.72 m → ~1.45 m
+const SCALE_ECHO := 0.84
+## Witch ~1.68 m → ~1.45 m
+const SCALE_STORM := 0.86
 
 
 static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 	var root := Node3D.new()
 	root.name = "Visual"
+	var path := PATH_GIRL
+	var scale := SCALE_GIRL
 	match style:
 		Style.GIRL:
-			_build_girl(root)
+			path = PATH_GIRL
+			scale = SCALE_GIRL
 		Style.ECHO:
-			_build_echo(root, accent)
+			path = PATH_ECHO
+			scale = SCALE_ECHO
 		Style.STORM:
-			_build_storm(root, accent)
+			path = PATH_STORM
+			scale = SCALE_STORM
+
+	var body := _load_glb(path)
+	if body == null:
+		push_error("[StylizedCharacterBuilder] missing GLB: %s" % path)
+		return root
+
+	body.name = "BodyMesh"
+	body.scale = Vector3.ONE * scale
+	# Grab3D meshes face +Z in A-pose.
+	root.add_child(body)
+
+	if style == Style.ECHO and accent != Color.WHITE:
+		_tint_meshes(body, accent, 0.22)
+	elif style == Style.STORM and accent != Color.WHITE:
+		_tint_meshes(body, accent, 0.18)
+
+	var face_mark := Node3D.new()
+	face_mark.name = "FaceFront"
+	face_mark.position = Vector3(0.0, 1.15 * scale, 0.12 * scale)
+	root.add_child(face_mark)
 	return root
 
 
-static func _build_girl(root: Node3D) -> void:
-	var skin := MeshFactory.mat(Color(1.0, 0.84, 0.74), 0.65)
-	var dress := MeshFactory.mat(Color(0.9, 0.4, 0.58), 0.72)
-	var apron := MeshFactory.mat(Color(1.0, 0.88, 0.92), 0.7)
-	var hair := MeshFactory.mat(Color(0.4, 0.22, 0.12), 0.88)
-	var shoe := MeshFactory.mat(Color(0.58, 0.28, 0.36), 0.8)
-	var sock := MeshFactory.mat(Color(0.95, 0.92, 0.98), 0.75)
-	var white := MeshFactory.mat(Color(0.99, 0.99, 1.0), 0.45)
-	var iris := MeshFactory.mat(Color(0.28, 0.5, 0.82), 0.35)
-	var blush := MeshFactory.mat(Color(1.0, 0.55, 0.58), 0.75, 0.0, Color(1.0, 0.45, 0.5), 0.2)
-	var ribbon := MeshFactory.mat(Color(0.95, 0.55, 0.75), 0.6, 0.0, Color(1.0, 0.6, 0.8), 0.15)
-
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.07, 0.08, 0.28), sock, Vector3(-0.11, 0.16, 0.0))
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.07, 0.08, 0.28), sock, Vector3(0.11, 0.16, 0.0))
-	MeshFactory.add_mesh(root, MeshFactory.box(Vector3(0.17, 0.09, 0.26)), shoe, Vector3(-0.11, 0.04, 0.05))
-	MeshFactory.add_mesh(root, MeshFactory.box(Vector3(0.17, 0.09, 0.26)), shoe, Vector3(0.11, 0.04, 0.05))
-
-	# Falowana spódnica ArrayMesh
-	var skirt := MeshFactory.add_mesh(root, MeshFactory.flared_skirt(0.48, 0.2, 0.55, 22), dress, Vector3(0, 0.28, 0))
-	skirt.rotation_degrees = Vector3(0, 12, 0)
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.2), apron, Vector3(0, 0.88, 0.08), Vector3(1.15, 0.55, 0.85))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.23), dress, Vector3(0, 0.95, 0), Vector3(1.05, 0.75, 1.0))
-
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.055, 0.4), skin, Vector3(-0.36, 0.95, 0.0), Vector3.ONE, Vector3(8, 0, 22))
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.055, 0.4), skin, Vector3(0.36, 0.95, 0.0), Vector3.ONE, Vector3(8, 0, -22))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), skin, Vector3(-0.42, 0.72, 0.05))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), skin, Vector3(0.42, 0.72, 0.05))
-
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.23), skin, Vector3(0, 1.28, 0))
-	# Włosy: czubek/tył (−Z) gęsty; grzywka wysoko nad oczami (+Z) — nie zasłania twarzy
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), hair, Vector3(0, 1.42, -0.06), Vector3(1.15, 0.75, 1.0))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.2), hair, Vector3(0, 1.34, -0.2), Vector3(1.15, 1.05, 1.15))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(-0.14, 1.3, -0.18))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0.14, 1.3, -0.18))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.12), hair, Vector3(0, 1.2, -0.22), Vector3(1.3, 0.9, 1.1))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.08), hair, Vector3(-0.09, 1.43, 0.12), Vector3(1.3, 0.4, 0.5))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.08), hair, Vector3(0.09, 1.43, 0.12), Vector3(1.3, 0.4, 0.5))
-	# Warkocze z koralikami
-	for side in [-1.0, 1.0]:
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.085), hair, Vector3(0.22 * side, 1.12, -0.02))
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.075), hair, Vector3(0.26 * side, 0.98, 0.0))
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.065), hair, Vector3(0.28 * side, 0.86, 0.02))
-		MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), ribbon, Vector3(0.28 * side, 0.78, 0.03))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), ribbon, Vector3(0.0, 1.55, -0.02), Vector3(1.8, 0.65, 0.7))
-
-	_face(root, Vector3(0, 1.28, 0.235), white, iris, blush, true)
+static func _load_glb(res_path: String) -> Node3D:
+	var path := res_path
+	if not FileAccess.file_exists(path):
+		path = ProjectSettings.globalize_path(res_path)
+	if not FileAccess.file_exists(path):
+		return null
+	var doc := GLTFDocument.new()
+	var state := GLTFState.new()
+	var err := doc.append_from_file(path, state)
+	if err != OK:
+		push_warning("[StylizedCharacterBuilder] GLTF err=%s path=%s" % [err, path])
+		return null
+	var scene := doc.generate_scene(state)
+	if scene is Node3D:
+		_enable_shadows(scene)
+		return scene as Node3D
+	var wrap := Node3D.new()
+	wrap.add_child(scene)
+	_enable_shadows(wrap)
+	return wrap
 
 
-static func _build_echo(root: Node3D, accent: Color) -> void:
-	var robe_c := accent if accent != Color.WHITE else Color(0.4, 0.62, 0.95)
-	var robe := MeshFactory.mat(robe_c, 0.68)
-	var trim := MeshFactory.mat(Color(0.88, 0.95, 1.0), 0.4, 0.12, Color(0.55, 0.8, 1.0), 0.35)
-	var skin := MeshFactory.mat(Color(0.97, 0.87, 0.8), 0.65)
-	var hair := MeshFactory.mat(Color(0.78, 0.9, 0.98), 0.5, 0.05, Color(0.55, 0.8, 1.0), 0.25)
-	var white := MeshFactory.mat(Color.WHITE, 0.45)
-	var iris := MeshFactory.mat(Color(0.3, 0.72, 0.95), 0.3)
-	var blush := MeshFactory.mat(Color(1.0, 0.7, 0.72), 0.75)
-
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.075, 0.085, 0.35), skin, Vector3(-0.12, 0.18, 0))
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.075, 0.085, 0.35), skin, Vector3(0.12, 0.18, 0))
-	MeshFactory.add_mesh(root, MeshFactory.flared_skirt(0.52, 0.22, 0.75, 24), robe, Vector3(0, 0.3, 0))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.28), trim, Vector3(0, 1.08, 0), Vector3(1.1, 0.5, 1.1))
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.48), skin, Vector3(-0.4, 1.0, 0), Vector3.ONE, Vector3(0, 0, 14))
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.48), skin, Vector3(0.4, 1.0, 0), Vector3.ONE, Vector3(0, 0, -14))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), skin, Vector3(0, 1.4, 0))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.27), hair, Vector3(0, 1.52, -0.04), Vector3(1.25, 0.8, 1.2))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.18), hair, Vector3(0, 1.42, -0.2), Vector3(1.1, 1.0, 1.15))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0, 1.62, 0.05), Vector3(1.3, 0.7, 1.0))
-	# Orbity echa
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), trim, Vector3(0.4, 1.65, 0.12))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.05), trim, Vector3(-0.38, 1.7, 0.08))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.04), trim, Vector3(0.15, 1.85, -0.05))
-	_face(root, Vector3(0, 1.4, 0.23), white, iris, blush, false)
+static func _enable_shadows(n: Node) -> void:
+	if n is MeshInstance3D:
+		(n as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+	for c in n.get_children():
+		_enable_shadows(c)
 
 
-static func _build_storm(root: Node3D, accent: Color) -> void:
-	var cloak_c := accent if accent != Color.WHITE else Color(0.5, 0.34, 0.78)
-	var cloak := MeshFactory.mat(cloak_c, 0.7)
-	var lining := MeshFactory.mat(Color(0.98, 0.78, 0.35), 0.5, 0.08, Color(1.0, 0.85, 0.4), 0.3)
-	var skin := MeshFactory.mat(Color(0.94, 0.8, 0.72), 0.65)
-	var hair := MeshFactory.mat(Color(0.22, 0.15, 0.32), 0.82)
-	var white := MeshFactory.mat(Color.WHITE, 0.45)
-	var iris := MeshFactory.mat(Color(0.72, 0.48, 0.95), 0.3)
-	var blush := MeshFactory.mat(Color(0.95, 0.55, 0.65), 0.75)
-
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.075, 0.085, 0.34), skin, Vector3(-0.12, 0.18, 0))
-	MeshFactory.add_mesh(root, MeshFactory.cylinder(0.075, 0.085, 0.34), skin, Vector3(0.12, 0.18, 0))
-	MeshFactory.add_mesh(root, MeshFactory.flared_skirt(0.55, 0.24, 0.82, 24), cloak, Vector3(0, 0.28, 0))
-	MeshFactory.add_mesh(root, MeshFactory.box(Vector3(0.62, 0.1, 0.22)), lining, Vector3(0, 1.1, 0.18))
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.46), skin, Vector3(-0.42, 1.02, 0), Vector3.ONE, Vector3(0, 0, 16))
-	MeshFactory.add_mesh(root, MeshFactory.capsule(0.06, 0.46), skin, Vector3(0.42, 1.02, 0), Vector3.ONE, Vector3(0, 0, -16))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.24), skin, Vector3(0, 1.42, 0))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.22), hair, Vector3(0, 1.55, -0.05), Vector3(1.35, 0.95, 1.25))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.17), hair, Vector3(0, 1.44, -0.2), Vector3(1.15, 1.0, 1.2))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.14), hair, Vector3(-0.22, 1.62, 0.02))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.13), hair, Vector3(0.24, 1.64, -0.02))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.1), hair, Vector3(0.05, 1.78, 0.0))
-	MeshFactory.add_mesh(root, MeshFactory.sphere(0.07), lining, Vector3(0.08, 1.86, 0.06))
-	_face(root, Vector3(0, 1.42, 0.23), white, iris, blush, false)
-
-
-## Twarz tylko z przodu (+Z): dyski + cull back. Z tyłu niewidoczne (normał +Z).
-static func _face(root: Node3D, head_pos: Vector3, white: Material, iris: Material, blush: Material, freckles: bool) -> void:
-	var face := Node3D.new()
-	face.name = "FaceFront"
-	face.position = head_pos
-	root.add_child(face)
-
-	var eye_y := 0.02
-	var face_z := 0.012
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.038), white, Vector3(-0.07, eye_y, face_z))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.038), white, Vector3(0.07, eye_y, face_z))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.02), iris, Vector3(-0.07, eye_y, face_z + 0.004))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.02), iris, Vector3(0.07, eye_y, face_z + 0.004))
-	var pupil := MeshFactory.mat(Color(0.08, 0.08, 0.12), 0.3)
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.011), pupil, Vector3(-0.07, eye_y, face_z + 0.007))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.011), pupil, Vector3(0.07, eye_y, face_z + 0.007))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.03), blush, Vector3(-0.11, -0.035, face_z - 0.002), Vector3(1.2, 1.0, 1.0))
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.03), blush, Vector3(0.11, -0.035, face_z - 0.002), Vector3(1.2, 1.0, 1.0))
-	var nose := MeshFactory.mat(Color(1.0, 0.78, 0.7), 0.7)
-	MeshFactory.add_mesh(face, MeshFactory.face_disc(0.016), nose, Vector3(0.0, -0.02, face_z + 0.01))
-	var smile := MeshFactory.mat(Color(0.78, 0.35, 0.42), 0.55)
-	MeshFactory.add_mesh(face, MeshFactory.face_quad(Vector2(0.1, 0.016)), smile, Vector3(0, -0.085, face_z + 0.004))
-	if freckles:
-		var f := MeshFactory.mat(Color(0.85, 0.5, 0.4), 0.8)
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.01), f, Vector3(-0.095, -0.015, face_z + 0.006))
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.095, -0.02, face_z + 0.006))
-		MeshFactory.add_mesh(face, MeshFactory.face_disc(0.009), f, Vector3(0.0, -0.04, face_z + 0.008))
+static func _tint_meshes(n: Node, accent: Color, amount: float) -> void:
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		var mat := mi.get_active_material(0)
+		if mat == null and mi.mesh != null and mi.mesh.get_surface_count() > 0:
+			mat = mi.mesh.surface_get_material(0)
+		if mat is StandardMaterial3D:
+			var sm := (mat as StandardMaterial3D).duplicate() as StandardMaterial3D
+			sm.albedo_color = sm.albedo_color.lerp(accent, amount)
+			mi.material_override = sm
+	for c in n.get_children():
+		_tint_meshes(c, accent, amount)

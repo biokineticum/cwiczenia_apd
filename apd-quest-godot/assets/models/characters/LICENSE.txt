@@ -1,0 +1,22 @@
+﻿Character assets — CC0 1.0 (public domain). Free personal & commercial use; no attribution required.
+All primary cast meshes are from Grab3D (same stylized/PBR family).
+
+player_girl.glb
+  Source: Grab3D “Child” (light) — https://grab3d.com/models/characters/child/
+  Download: https://grab3d.com/dl/child/child-light.glb
+  Note: raincoat albedo recolored yellow→pink for the APD Quest player.
+  Licence: CC0 1.0
+
+npc_echo.glb
+  Source: Grab3D “Elf” (light) — https://grab3d.com/models/characters/elf/
+  Download: https://grab3d.com/dl/elf/elf-light.glb
+  Licence: CC0 1.0
+
+npc_storm.glb
+  Source: Grab3D “Witch” (light) — https://grab3d.com/models/characters/witch/
+  Download: https://grab3d.com/dl/witch/witch-light.glb
+  Licence: CC0 1.0
+
+npc_dress_alt.glb (optional / unused in builder)
+  Source: Quaternius “Woman in Dress” via Poly Pizza — https://poly.pizza/m/zMyPlQXBzq
+  Licence: CC0 1.0

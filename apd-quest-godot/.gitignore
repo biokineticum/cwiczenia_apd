@@ -16,6 +16,22 @@ Thumbs.db
 *~
 *.swp
 
+# Local capture / mesh tooling scratch
+.capture/
+assets/models/characters/_extract/
+assets/models/characters/*.zip
+assets/models/characters/child_full.glb
+assets/models/characters/child_rigged.glb
+assets/models/characters/child_light.glb
+assets/models/characters/girl_*.glb
+assets/models/characters/female-*.glb
+assets/models/characters/meshcrate-*.glb
+assets/models/characters/kenney*
+assets/models/characters/colormap*
+assets/models/characters/child_tex*
+assets/models/characters/player_girl_pink.glb
+assets/models/characters/character.glb
+
 # Exports
 build/
 exports/
