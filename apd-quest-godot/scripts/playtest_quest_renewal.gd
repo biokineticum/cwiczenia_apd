@@ -68,7 +68,7 @@ func _run_cycle(qm: Node, quest_id: String, mode: String) -> bool:
 	else:
 		var module2 := _find_newest_script(root, "speech_in_noise.gd")
 		if module2 == null:
-			qm.call("remember_roll", quest_id, {"illustration": "park", "sentence": "x"})
+			qm.call("remember_roll", quest_id, {"illustration": "scene_pies_park", "sentence": "x"})
 			qm.call("complete_active_quest", true)
 		else:
 			var ill := str(module2.get("target_illustration"))

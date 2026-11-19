@@ -202,8 +202,8 @@ func _find_player() -> Node3D:
 func _pick_item() -> void:
 	var path := "res://data/sentences.json"
 	var fallback_text := "Pies biegnie po parku"
-	var fallback_ill := "park"
-	var distractors: Array = ["sleep", "house", "car"]
+	var fallback_ill := "scene_pies_park"
+	var distractors: Array = ["scene_kot_spi", "scene_dom_kwiat", "scene_auto"]
 	var qid := QuestManager.active_quest_id()
 	var last = QuestManager.get_last_roll(qid) if qid != "" else null
 	var last_ill := ""

@@ -1,84 +1,84 @@
 {
-  "note": "Krótkie zdania dla 5-latki. illustration + distractors = obrazki.",
+  "note": "Krótkie zdania dla 5-latki. illustration + distractors = pełne scenki PNG (assets/textures/icons/<id>.png).",
   "items": [
     {
       "id": "pies_park",
       "text_pl": "Pies biegnie po parku",
-      "illustration": "park",
+      "illustration": "scene_pies_park",
       "distractors": [
-        "sleep",
-        "house",
-        "car"
+        "scene_kot_spi",
+        "scene_dom_kwiat",
+        "scene_auto"
       ]
     },
     {
       "id": "kot_spi",
       "text_pl": "Kot śpi na kanapie",
-      "illustration": "sleep",
+      "illustration": "scene_kot_spi",
       "distractors": [
-        "dog",
-        "park",
-        "book"
+        "scene_pies_park",
+        "scene_jablko",
+        "scene_pilka"
       ]
     },
     {
       "id": "dom_kwiat",
       "text_pl": "Przed domem rośnie kwiat",
-      "illustration": "flower",
+      "illustration": "scene_dom_kwiat",
       "distractors": [
-        "rain",
-        "car",
-        "bread"
+        "scene_deszcz_woda",
+        "scene_auto",
+        "scene_jablko"
       ]
     },
     {
       "id": "ptak_slonce",
       "text_pl": "Ptak leci w słońcu",
-      "illustration": "bird",
+      "illustration": "scene_ptak_slonce",
       "distractors": [
-        "cat",
-        "water",
-        "door"
+        "scene_kot_spi",
+        "scene_deszcz_woda",
+        "scene_dom_kwiat"
       ]
     },
     {
       "id": "deszcz_woda",
       "text_pl": "Pada deszcz",
-      "illustration": "rain",
+      "illustration": "scene_deszcz_woda",
       "distractors": [
-        "sun",
-        "ball",
-        "milk"
+        "scene_ptak_slonce",
+        "scene_pilka",
+        "scene_jablko"
       ]
     },
     {
       "id": "jablko",
       "text_pl": "Dziecko je jabłko",
-      "illustration": "apple",
+      "illustration": "scene_jablko",
       "distractors": [
-        "bread",
-        "ball",
-        "book"
+        "scene_pilka",
+        "scene_auto",
+        "scene_pies_park"
       ]
     },
     {
       "id": "pilka",
       "text_pl": "Piłka toczy się po trawie",
-      "illustration": "ball",
+      "illustration": "scene_pilka",
       "distractors": [
-        "apple",
-        "car",
-        "tree"
+        "scene_jablko",
+        "scene_auto",
+        "scene_dom_kwiat"
       ]
     },
     {
       "id": "auto",
       "text_pl": "Jedzie czerwone auto",
-      "illustration": "car",
+      "illustration": "scene_auto",
       "distractors": [
-        "house",
-        "dog",
-        "bird"
+        "scene_dom_kwiat",
+        "scene_pies_park",
+        "scene_ptak_slonce"
       ]
     }
   ]
