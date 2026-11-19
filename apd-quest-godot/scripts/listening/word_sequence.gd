@@ -17,7 +17,7 @@ var _selected: PackedStringArray = PackedStringArray()
 var _noise: NoisePlayer
 var _speech: SpeechPlayer
 var _noise_on: bool = false
-var _relative_level: float = 0.35
+var _relative_level: float = 0.18
 var _noise_type: String = "pink"
 var _presenting: bool = false
 var _fail_count: int = 0

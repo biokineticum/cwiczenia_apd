@@ -72,7 +72,7 @@ Później można podmienić na modele CC0 (np. Kenney Nature Kit) — attributio
 | NPC | `scenes/npc/npc_stub.tscn` |
 | UI | `scenes/ui/` |
 | Mini-gry | `scripts/listening/` |
-| Szum (pętla WAV, bus Noise) | `scripts/audio/noise_player.gd` — Echo: parent toggle; Burza: ON |
+| Szum (pętla WAV, bus Noise) | `scripts/audio/noise_player.gd` — Echo: parent toggle; Burza: ON; poziom ~0.18 + duck pod TTS |
 | Dane | `data/*.json` |
 
 ## Zastrzeżenie kliniczne

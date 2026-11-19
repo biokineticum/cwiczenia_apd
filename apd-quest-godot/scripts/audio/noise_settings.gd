@@ -7,7 +7,8 @@ signal changed
 var enabled: bool = false
 var noise_type: String = "pink"
 ## 0.0–1.0 względna głośność szumu względem mowy (heurystyka, nie SNR).
-var relative_level: float = 0.55
+## ~0.18 = cichy podkład pod TTS (~5 lat APD); PL-31 0.55 maskował mowę.
+var relative_level: float = 0.18
 
 
 func _ready() -> void:
@@ -24,7 +25,7 @@ func _load_defaults_from_json() -> void:
 		return
 	enabled = bool(data.get("default_enabled", false))
 	noise_type = str(data.get("default_type", "pink"))
-	relative_level = float(data.get("default_relative_level", 0.35))
+	relative_level = float(data.get("default_relative_level", 0.18))
 
 
 func set_enabled(value: bool) -> void:
