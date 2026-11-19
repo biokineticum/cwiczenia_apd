@@ -119,29 +119,77 @@ func _speak_lines(lines: PackedStringArray) -> void:
 func _spawn_walk_zones() -> void:
 	_clear_zones()
 	var player := _find_player()
-	var origin := Vector3(0, 0.05, 2.0)
-	if player:
-		origin = player.global_position
+	var q: QuestDefinition = QuestManager.get_quest(_quest_id)
+	var npc := _find_quest_npc(q)
 	var scene := get_tree().current_scene
 	if scene == null:
 		return
-	# Zielone = akceptuj / OK (przed dziewczynką)
+	# Kotwica = NPC questa (pad OBOK niej), nie przed kamerą/przez głowę.
+	var anchor := Vector3(0, 0.05, 2.0)
+	if npc:
+		anchor = npc.global_position
+	elif player:
+		anchor = player.global_position
+	var toward := Vector3(0, 0, 1)
+	if player:
+		toward = player.global_position - anchor
+		toward.y = 0.0
+		if toward.length_squared() < 0.01:
+			toward = Vector3(0, 0, 1)
+		else:
+			toward = toward.normalized()
+	# Bok względem osi gracz↔NPC — zielone i czerwone na bokach, nie na mesh.
+	var side := Vector3(-toward.z, 0.0, toward.x)
+	if side.length_squared() < 0.01:
+		side = Vector3.RIGHT
+	else:
+		side = side.normalized()
+	# Lekki bias od środka polany, żeby padd'y nie wpadały w drugiego NPC.
+	if npc and str(npc.get("npc_id")) == "npc_storm":
+		if side.dot(Vector3.RIGHT) < 0.0:
+			side = -side
+	elif side.dot(Vector3.LEFT) < 0.0:
+		side = -side
+	# Wyraźnie z boku (≥3 m) + tylko lekko ku graczowi — nie przed torsem w kadrze.
+	const SIDE_GO := 3.25
+	const SIDE_LEAVE := 3.55
+	const TOWARD := 0.55
+	var go_pos := anchor + side * SIDE_GO + toward * TOWARD
+	go_pos.y = 0.05
+	var leave_pos := anchor - side * SIDE_LEAVE + toward * TOWARD
+	leave_pos.y = 0.05
 	var go: Area3D = WalkZone.new()
 	scene.add_child(go)
-	var go_pos := origin + Vector3(0.0, 0.0, -1.8)
 	if _phase == "offer":
 		go.setup("accept", "play", go_pos, Color(0.35, 0.78, 0.45))
 	else:
 		go.setup("accept", "check", go_pos, Color(0.35, 0.78, 0.45))
 	go.walked_in.connect(_on_zone)
 	_zones.append(go)
-	# Szare/czerwone = nie teraz (tylko oferta) — na bok
 	if _phase == "offer":
 		var leave: Area3D = WalkZone.new()
 		scene.add_child(leave)
-		leave.setup("dismiss", "close", origin + Vector3(2.4, 0.0, -0.6), Color(0.75, 0.45, 0.4))
+		leave.setup("dismiss", "close", leave_pos, Color(0.75, 0.45, 0.4))
 		leave.walked_in.connect(_on_zone)
 		_zones.append(leave)
+
+
+func _find_quest_npc(q: QuestDefinition) -> Node3D:
+	if q == null:
+		return null
+	var want := str(q.npc_id)
+	for n in get_tree().get_nodes_in_group("npc"):
+		if n is Node3D and str(n.get("npc_id")) == want:
+			return n as Node3D
+	# Fallback po nazwie sceny.
+	var scene := get_tree().current_scene
+	if scene == null:
+		return null
+	if want == "npc_echo":
+		return scene.get_node_or_null("NpcEcho") as Node3D
+	if want == "npc_storm":
+		return scene.get_node_or_null("NpcStorm") as Node3D
+	return null
 
 
 func _on_zone(zone: Area3D) -> void:

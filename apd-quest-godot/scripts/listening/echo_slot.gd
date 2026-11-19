@@ -55,8 +55,7 @@ func setup(index: int, pos: Vector3) -> void:
 	_digit_label.modulate = Color(0.1, 0.2, 0.45)
 	_digit_label.outline_modulate = Color(1, 1, 1, 1)
 	_digit_label.outline_size = 14
-	_digit_label.no_depth_test = true
-	_digit_label.render_priority = 16
+	_digit_label.no_depth_test = false
 	add_child(_digit_label)
 	body_entered.connect(_on_body_entered)
 	body_exited.connect(_on_body_exited)

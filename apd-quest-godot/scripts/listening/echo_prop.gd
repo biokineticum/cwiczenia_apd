@@ -42,18 +42,11 @@ func setup(p_word_id: String, p_icon_id: String, pos: Vector3) -> void:
 	spr.texture = IconFactory.get_icon(icon_id)
 	# ~1,15 m wysokości (IconFactory.CANONICAL_SIZE × pixel_size) — nie surowy 1024 PNG.
 	spr.pixel_size = IconFactory.sprite_pixel_size()
-	spr.position = Vector3(0, 0.95, 0)
+	spr.position = Vector3(0, 0.72, 0)
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.shaded = false
-	spr.double_sided = true
-	# Jak walk_confirm: marker zawsze czytelny przed postaciami.
-	spr.no_depth_test = true
-	spr.render_priority = 32
-	spr.sorting_offset = 32.0
-	spr.alpha_cut = SpriteBase3D.ALPHA_CUT_DISABLED
-	spr.transparent = true
+	spr.no_depth_test = false
 	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	spr.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
 	add_child(spr)
 	body_entered.connect(_on_body_entered)
 

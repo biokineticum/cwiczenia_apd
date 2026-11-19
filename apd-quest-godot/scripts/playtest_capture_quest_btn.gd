@@ -1,5 +1,5 @@
 extends SceneTree
-## Zrzut: zielone play (walk_confirm) PRZED meshem NPC — dowód depth fix.
+## Zrzut: zielone play OBOK NPC — twarz i przycisk czytelne obok siebie.
 ## APD_QUEST_SCREENSHOT=path.png
 
 
@@ -24,46 +24,56 @@ func _initialize() -> void:
 		quit(1)
 		return
 
-	var player := root.find_child("PlayerGirl", true, false)
-	var npc := _find_named(root, "NpcEcho")
-	if npc == null:
-		npc = _find_named(root, "npc_echo")
-	if npc == null:
-		# Fallback: pierwszy NPC w grupie / CharacterBody poza graczem.
-		npc = _find_npc_fallback(root)
-
-	if player == null:
-		push_error("[capture-quest-btn] brak PlayerGirl")
+	var player := root.find_child("PlayerGirl", true, false) as Node3D
+	var npc := root.find_child("NpcEcho", true, false) as Node3D
+	if player == null or npc == null:
+		push_error("[capture-quest-btn] brak PlayerGirl / NpcEcho")
 		quit(1)
 		return
 
-	var npos := zone.global_position
-	if npc:
-		npos = (npc as Node3D).global_position
-		# Pad tuż przed NPC (między kamerą a postacią).
-		zone.global_position = npos + Vector3(0.0, 0.0, 0.85)
-	# Kamera: patrzy w NPC; zielone play na środku kadru, postać zaraz za ikoną.
-	player.global_position = zone.global_position + Vector3(0.0, 0.4, 2.2)
-	player.set("_yaw", 0.0)
-	player.set("_pitch", -0.28)
+	var mid := (zone.global_position + npc.global_position) * 0.5
+	var across := zone.global_position - npc.global_position
+	across.y = 0.0
+	if across.length_squared() < 0.01:
+		across = Vector3.RIGHT
+	else:
+		across = across.normalized()
+	# Kamera prostopadle do osi NPC↔pad → w kadrze stoją OBOK siebie, nie jeden za drugim.
+	var back := Vector3(-across.z, 0.0, across.x)
+	if back.dot(Vector3(0, 0, 1)) < 0.0:
+		back = -back
+	player.global_position = mid + back * 4.6 + Vector3(0.0, 0.4, 0.0)
+	var look := mid - player.global_position
+	# pivot yaw: kamera patrzy −Z lokalnie → yaw = atan2(-look.x, -look.z)
+	player.set("_yaw", atan2(-look.x, -look.z))
+	player.set("_pitch", -0.12)
 	if player.has_method("_apply_camera"):
 		player.call("_apply_camera")
-	await create_timer(0.2).timeout
-	# Jeszcze jedna klatka process — bias kamery na Sprite3D.
+	var vis := player.get_node_or_null("Visual")
+	if vis:
+		vis.visible = false
 	await process_frame
-	await process_frame
-	await create_timer(0.25).timeout
+	await create_timer(0.4).timeout
 
 	var spr := _find_sprite3d(zone)
 	var ok_flags := false
 	if spr:
-		ok_flags = bool(spr.no_depth_test) and int(spr.render_priority) >= 1
+		ok_flags = not bool(spr.no_depth_test)
 		print(
-			"[capture-quest-btn] sprite no_depth_test=%s render_priority=%s sorting_offset=%.1f y=%.2f"
-			% [spr.no_depth_test, spr.render_priority, spr.sorting_offset, spr.position.y]
+			"[capture-quest-btn] sprite no_depth_test=%s render_priority=%s y=%.2f"
+			% [spr.no_depth_test, spr.render_priority, spr.position.y]
 		)
-	else:
-		print("[capture-quest-btn] WARN: brak Sprite3D w strefie")
+	var lateral := Vector2(
+		zone.global_position.x - npc.global_position.x,
+		zone.global_position.z - npc.global_position.z
+	).length()
+	print("[capture-quest-btn] pad_lateral_from_npc=%.2fm" % lateral)
+
+	var storm := root.find_child("NpcStorm", true, false) as Node3D
+	var npc_sep := 0.0
+	if storm:
+		npc_sep = npc.global_position.distance_to(storm.global_position)
+		print("[capture-quest-btn] echo_storm_sep=%.1fm" % npc_sep)
 
 	var shot := OS.get_environment("APD_QUEST_SCREENSHOT")
 	if shot != "":
@@ -72,7 +82,7 @@ func _initialize() -> void:
 			img.save_png(shot)
 			print("[capture-quest-btn] saved %s" % shot)
 
-	var ok: bool = zone != null and ok_flags
+	var ok: bool = zone != null and ok_flags and lateral >= 2.5 and npc_sep >= 12.0
 	print("[capture-quest-btn] RESULT=%s" % ("PASS" if ok else "FAIL"))
 	quit(0 if ok else 1)
 
@@ -94,26 +104,6 @@ func _find_sprite3d(n: Node) -> Sprite3D:
 		return n as Sprite3D
 	for c in n.get_children():
 		var f := _find_sprite3d(c)
-		if f:
-			return f
-	return null
-
-
-func _find_named(n: Node, want: String) -> Node:
-	if n.name == want:
-		return n
-	for c in n.get_children():
-		var f := _find_named(c, want)
-		if f:
-			return f
-	return null
-
-
-func _find_npc_fallback(n: Node) -> Node:
-	if n.is_in_group("npc"):
-		return n
-	for c in n.get_children():
-		var f := _find_npc_fallback(c)
 		if f:
 			return f
 	return null
