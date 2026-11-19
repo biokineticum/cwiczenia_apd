@@ -1,7 +1,9 @@
 extends RefCounted
 class_name IconFactory
-## Proceduralne ikony (nie emoji) — konkretne symbole dla 5-latki.
+## Ikony z PNG (assets/textures/icons/<id>.png) albo proceduralny fallback.
 ## Zwraca Texture2D; cache w statycznym słowniku.
+
+const ICONS_DIR := "res://assets/textures/icons/"
 
 static var _cache: Dictionary = {}
 
@@ -9,9 +11,28 @@ static var _cache: Dictionary = {}
 static func get_icon(icon_id: String) -> Texture2D:
 	if _cache.has(icon_id):
 		return _cache[icon_id]
-	var tex := _draw_icon(icon_id)
+	var tex := _load_png_icon(icon_id)
+	if tex == null:
+		tex = _draw_icon(icon_id)
 	_cache[icon_id] = tex
 	return tex
+
+
+static func _load_png_icon(icon_id: String) -> Texture2D:
+	if icon_id.is_empty() or icon_id.contains("..") or icon_id.contains("/") or icon_id.contains("\\"):
+		return null
+	var path := ICONS_DIR + icon_id + ".png"
+	if ResourceLoader.exists(path):
+		var res: Resource = load(path)
+		if res is Texture2D:
+			return res as Texture2D
+	# Bez .import (edytor jeszcze nie zaimportował) — wczytaj surowy PNG.
+	if FileAccess.file_exists(path):
+		var img := Image.new()
+		var err := img.load(path)
+		if err == OK:
+			return ImageTexture.create_from_image(img)
+	return null
 
 
 static func _draw_icon(icon_id: String) -> ImageTexture:
