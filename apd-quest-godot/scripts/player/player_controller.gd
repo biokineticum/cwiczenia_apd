@@ -29,6 +29,9 @@ func _ready() -> void:
 			built.remove_child(c)
 			visual.add_child(c)
 		built.free()
+	# Mesh front = +Z (FaceFront). Default cam is on +Z looking −Z; start facing
+	# world −Z so the camera behind the girl sees occiput hair, not eye discs.
+	visual.rotation.y = PI
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -67,7 +70,9 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, direction.z * speed, acceleration * delta)
 		var look := Vector3(direction.x, 0.0, direction.z)
 		if look.length_squared() > 0.001 and visual:
-			var target_yaw := atan2(-look.x, -look.z)
+			# +Z-forward matches stylized mesh (face/shoes on +Z).
+			# Old atan2(-x,-z) aimed −Z forward → eyes faced the chase camera.
+			var target_yaw := atan2(look.x, look.z)
 			visual.rotation.y = lerp_angle(visual.rotation.y, target_yaw, 12.0 * delta)
 	else:
 		velocity.x = move_toward(velocity.x, 0.0, acceleration * delta)
