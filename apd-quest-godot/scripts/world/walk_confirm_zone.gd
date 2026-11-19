@@ -1,6 +1,7 @@
 extends Area3D
 ## Strefa potwierdzenia ruchem: wejdź postacią (bez klikania kursorem).
 ## One-shot: po wyzwoleniu monitoring wyłączany deferred.
+## Ikona: normalny depth test — pad stoi OBOK postaci (layout), nie przez mesh.
 
 signal walked_in(zone: Area3D)
 
@@ -43,9 +44,14 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 	spr.texture = IconFactory.get_icon(icon_id)
 	# Kanoniczny pixel_size: pad czytelny dla 5-latki, nie ~17 m z surowego 1024.
 	spr.pixel_size = IconFactory.sprite_pixel_size()
-	spr.position = Vector3(0, 0.75, 0)
+	spr.position = Vector3(0, 0.78, 0)
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.shaded = false
+	# Normalny depth test — nie rysuj przez postacie; layout trzyma pad z boku.
+	spr.no_depth_test = false
+	spr.render_priority = 0
+	spr.sorting_offset = 0.0
+	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(spr)
 	body_entered.connect(_on_enter)
 	body_exited.connect(_on_exit)

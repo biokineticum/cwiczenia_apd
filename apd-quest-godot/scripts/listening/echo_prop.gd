@@ -45,6 +45,8 @@ func setup(p_word_id: String, p_icon_id: String, pos: Vector3) -> void:
 	spr.position = Vector3(0, 0.72, 0)
 	spr.billboard = BaseMaterial3D.BILLBOARD_ENABLED
 	spr.shaded = false
+	spr.no_depth_test = false
+	spr.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(spr)
 	body_entered.connect(_on_body_entered)
 

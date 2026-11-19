@@ -182,11 +182,12 @@ func _build_path() -> void:
 
 
 func _build_trees() -> void:
+	# Trzymaj drzewa z dala od polanek questów: Echo (−17,0) i Burza (+17,0).
 	var spots := [
-		Vector3(-8, 0, -7), Vector3(9, 0, -6), Vector3(-10, 0, 4), Vector3(10, 0, 5),
-		Vector3(-6, 0, 9), Vector3(7, 0, 9), Vector3(-12, 0, -2), Vector3(12, 0, -1),
-		Vector3(-3, 0, -11), Vector3(4, 0, -12), Vector3(-14, 0, 6), Vector3(13, 0, -8),
-		Vector3(-9, 0, -12), Vector3(8, 0, -11),
+		Vector3(-8, 0, -9), Vector3(8, 0, -9), Vector3(-5, 0, 11), Vector3(5, 0, 11),
+		Vector3(-11, 0, 10), Vector3(11, 0, 10), Vector3(-3, 0, -13), Vector3(4, 0, -13),
+		Vector3(-14, 0, -10), Vector3(14, 0, -10), Vector3(-9, 0, -13), Vector3(9, 0, -13),
+		Vector3(0, 0, 14), Vector3(0, 0, -15),
 	]
 	var i := 0
 	for p in spots:
