@@ -6,6 +6,13 @@ const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 @export var world_size: float = 56.0
 @export var terrain_res: int = 52
 
+## Flat stand pads under Echo (−17,0) and Burza (17,0) — matches main.tscn spawns.
+## Without these, rim hills bury Node3D NPCs while the CharacterBody3D player rides the heightmap.
+const NPC_PAD_HALF_XZ := 2.5
+const NPC_PAD_Y := 0.03
+const NPC_ECHO_XZ := Vector2(-17.0, 0.0)
+const NPC_STORM_XZ := Vector2(17.0, 0.0)
+
 var _bark_tex: Texture2D
 var _grass_tex: Texture2D
 var _roof_tex: Texture2D
@@ -110,6 +117,9 @@ func _build_terrain() -> void:
 			h += rim * rim * 1.6
 			if absf(wx) < 1.7 and wz < 3.5 and wz > -11.0:
 				h *= 0.12
+			# Level pads so Grab3D NPCs (fixed Y) are not sunk into rim hills.
+			if _on_npc_pad(wx, wz):
+				h = NPC_PAD_Y
 			heights[z * terrain_res + x] = h
 
 	var st := SurfaceTool.new()
@@ -150,6 +160,14 @@ func _build_terrain() -> void:
 	cs.scale = Vector3(step, 1.0, step)
 	body.add_child(cs)
 	add_child(body)
+
+
+func _on_npc_pad(wx: float, wz: float) -> bool:
+	var p := Vector2(wx, wz)
+	return (
+		p.distance_to(NPC_ECHO_XZ) <= NPC_PAD_HALF_XZ
+		or p.distance_to(NPC_STORM_XZ) <= NPC_PAD_HALF_XZ
+	)
 
 
 func _add_tri(st: SurfaceTool, a: Vector3, b: Vector3, c: Vector3, uv_scale: float) -> void:

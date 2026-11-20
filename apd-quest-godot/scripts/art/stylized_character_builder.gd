@@ -16,6 +16,8 @@ const SCALE_GIRL := 1.12
 const SCALE_ECHO := 0.84
 ## Witch ~1.68 m → ~1.45 m
 const SCALE_STORM := 0.86
+## Tiny lift so soles clear terrain z-fight after AABB ground-align.
+const FOOT_CLEARANCE := 0.01
 
 
 static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
@@ -41,7 +43,10 @@ static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 
 	body.name = "BodyMesh"
 	body.scale = Vector3.ONE * scale
-	# Grab3D meshes face +Z in A-pose.
+	# Grab3D: pivot at base, +Z face. Still AABB-align so any import with a
+	# mid-body origin (or tiny sole bias) stands with feet on Y=0.
+	_ground_align_feet(body)
+	body.position.y += FOOT_CLEARANCE
 	root.add_child(body)
 
 	if style == Style.ECHO and accent != Color.WHITE:
@@ -51,9 +56,32 @@ static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 
 	var face_mark := Node3D.new()
 	face_mark.name = "FaceFront"
-	face_mark.position = Vector3(0.0, 1.15 * scale, 0.12 * scale)
+	face_mark.position = Vector3(0.0, 1.15 * scale + FOOT_CLEARANCE, 0.12 * scale)
 	root.add_child(face_mark)
 	return root
+
+
+## Shift body so the lowest mesh vertex lands at local Y=0 (feet on ground).
+static func _ground_align_feet(body: Node3D) -> void:
+	var min_y := _mesh_min_y(body, Transform3D.IDENTITY)
+	if min_y < INF:
+		body.position.y -= min_y
+
+
+static func _mesh_min_y(n: Node, parent_xf: Transform3D) -> float:
+	var xf := parent_xf
+	if n is Node3D:
+		xf = parent_xf * (n as Node3D).transform
+	var min_y := INF
+	if n is MeshInstance3D:
+		var mi := n as MeshInstance3D
+		if mi.mesh != null:
+			var aabb: AABB = mi.get_aabb()
+			for i in 8:
+				min_y = minf(min_y, (xf * aabb.get_endpoint(i)).y)
+	for c in n.get_children():
+		min_y = minf(min_y, _mesh_min_y(c, xf))
+	return min_y
 
 
 static func _load_glb(res_path: String) -> Node3D:
