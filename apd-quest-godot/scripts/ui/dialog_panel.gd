@@ -145,13 +145,14 @@ func _spawn_walk_zones() -> void:
 	elif anchor.x > 0.0:
 		inward = Vector3.LEFT
 	# 2–4 m czysto z boku (ten sam Z co NPC dla play) + close dalej wzdłuż Z.
+	# Keep pads on the flat NPC stand pad (fairy_clearing NPC_PAD_HALF_XZ ≈ 4.5).
 	const INWARD := 3.2
 	const ALONG_GO := 0.0
 	const ALONG_LEAVE := -2.8
 	var go_pos := anchor + inward * INWARD + Vector3(0.0, 0.0, ALONG_GO)
-	go_pos.y = 0.05
 	var leave_pos := anchor + inward * INWARD + Vector3(0.0, 0.0, ALONG_LEAVE)
-	leave_pos.y = 0.05
+	go_pos.y = _ground_y_at(go_pos, anchor.y)
+	leave_pos.y = _ground_y_at(leave_pos, anchor.y)
 	var go: Area3D = WalkZone.new()
 	scene.add_child(go)
 	if _phase == "offer":
@@ -246,6 +247,25 @@ func _find_player() -> Node3D:
 	if nodes.is_empty():
 		return null
 	return nodes[0] as Node3D
+
+
+## Snap pad Y to terrain so Burza/Echo confirm circles stay enterable on rim hills.
+func _ground_y_at(at: Vector3, fallback_y: float) -> float:
+	var world := get_viewport().world_3d if get_viewport() else null
+	if world == null:
+		return fallback_y + 0.02
+	var space := world.direct_space_state
+	if space == null:
+		return fallback_y + 0.02
+	var query := PhysicsRayQueryParameters3D.create(
+		Vector3(at.x, 20.0, at.z), Vector3(at.x, -40.0, at.z)
+	)
+	query.collision_mask = 1
+	query.collide_with_areas = false
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return fallback_y + 0.02
+	return float(hit.position.y) + 0.02
 
 
 func _exit_tree() -> void:

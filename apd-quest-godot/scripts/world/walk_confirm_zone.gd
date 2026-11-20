@@ -34,9 +34,10 @@ func setup(p_kind: String, p_icon: String, pos: Vector3, p_accent: Color = Color
 	var shape := CollisionShape3D.new()
 	var cyl := CylinderShape3D.new()
 	cyl.radius = radius * 0.72 # Area < mesh
-	cyl.height = 0.4
+	# Tall enough to overlap player capsule even if pad Y is slightly off terrain.
+	cyl.height = 1.6
 	shape.shape = cyl
-	shape.position = Vector3(0, 0.2, 0)
+	shape.position = Vector3(0, 0.8, 0)
 	add_child(shape)
 	var mat := MeshFactory.mat(accent, 0.65, 0.0, accent, 0.45)
 	MeshFactory.add_mesh(self, MeshFactory.cylinder(radius * 0.9, radius, 0.1, 16), mat, Vector3(0, 0.05, 0))

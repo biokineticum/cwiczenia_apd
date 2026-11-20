@@ -3,7 +3,7 @@ class_name StylizedCharacterBuilder
 ## Characters from Grab3D rigged CC0 GLBs (walk + run clips).
 ## Player: Child. Echo: Elf. Burza/Storm: Witch.
 ## Keep FaceFront marker +Z; gameplay/collision unchanged.
-## Animation: CharacterAnimator on Visual (procedural idle + walk/run).
+## Animation: CharacterAnimator on Visual (walk-frame idle rest + walk/run).
 
 const CharacterAnimator = preload("res://scripts/art/character_animator.gd")
 

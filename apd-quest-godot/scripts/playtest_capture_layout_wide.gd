@@ -71,10 +71,10 @@ func _spawn_pads_for(parent: Node, npc: Node3D, inward: Vector3) -> void:
 	var go := WalkZone.new()
 	parent.add_child(go)
 	var go_pos := anchor + inward * INWARD + Vector3(0, 0, ALONG_GO)
-	go_pos.y = 0.05
+	go_pos.y = anchor.y + 0.02
 	go.setup("accept", "play", go_pos, Color(0.35, 0.78, 0.45))
 	var leave := WalkZone.new()
 	parent.add_child(leave)
 	var leave_pos := anchor + inward * INWARD + Vector3(0, 0, ALONG_LEAVE)
-	leave_pos.y = 0.05
+	leave_pos.y = anchor.y + 0.02
 	leave.setup("dismiss", "close", leave_pos, Color(0.75, 0.45, 0.4))
