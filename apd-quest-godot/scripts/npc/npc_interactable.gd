@@ -30,6 +30,8 @@ func _ready() -> void:
 	if has_node("NameLabel"):
 		$NameLabel.visible = false
 	_rebuild_visual()
+	# Defer: physics world + terrain HeightMap must exist before raycast.
+	call_deferred("_snap_feet_to_ground")
 	QuestManager.quest_finished.connect(_on_quest_finished)
 	QuestManager.interact_available.connect(_on_interact_available)
 
@@ -137,6 +139,30 @@ func _rebuild_visual() -> void:
 		built.remove_child(child)
 		visual.add_child(child)
 	built.free()
+
+
+## Place Node3D NPC origin on terrain (player uses CharacterBody3D floor snap).
+func _snap_feet_to_ground() -> void:
+	if not is_inside_tree():
+		return
+	var world := get_world_3d()
+	if world == null:
+		return
+	var space := world.direct_space_state
+	if space == null:
+		return
+	var from := global_position + Vector3(0.0, 12.0, 0.0)
+	var to := global_position + Vector3(0.0, -40.0, 0.0)
+	var query := PhysicsRayQueryParameters3D.create(from, to)
+	query.collision_mask = 1 # world / terrain
+	query.collide_with_areas = false
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		push_warning("[%s] ground snap missed — keep scene Y=%.3f" % [display_name, global_position.y])
+		return
+	var hit_y: float = hit.position.y
+	global_position.y = hit_y
+	print("[%s] feet snapped to ground Y=%.3f" % [display_name, hit_y])
 
 
 func _try_talk() -> void:
