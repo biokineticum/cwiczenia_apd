@@ -25,6 +25,28 @@ func _initialize() -> void:
 	else:
 		print("[smoke] echo=%s storm=%s" % [echo.id, storm.id])
 
+	# PL-37: cancel_active_quest clears without counting a run.
+	if not qm.has_method("cancel_active_quest"):
+		push_error("[smoke] brak cancel_active_quest")
+		ok = false
+	else:
+		qm.call("start_quest", "npc_echo_word_seq")
+		if qm.get("active_quest") == null:
+			push_error("[smoke] start_quest nie ustawił active")
+			ok = false
+		else:
+			qm.call("cancel_active_quest")
+			var still = qm.get("active_quest")
+			var life := int(qm.get("runs_lifetime").get("npc_echo_word_seq", 0))
+			var can_again := bool(qm.call("can_offer", "npc_echo_word_seq"))
+			var can_other := bool(qm.call("can_offer", "npc_storm_speech"))
+			print("[smoke] cancel: active=%s life=%d can_echo=%s can_storm=%s" % [
+				still != null, life, can_again, can_other
+			])
+			if still != null or life != 0 or not can_again or not can_other:
+				push_error("[smoke] cancel_active_quest nie wyczyścił stanu")
+				ok = false
+
 	var ws: Node = (load("res://scripts/listening/word_sequence.gd") as GDScript).new()
 	root.add_child(ws)
 	ws.call("_load_pool")

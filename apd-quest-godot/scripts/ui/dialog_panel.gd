@@ -107,11 +107,15 @@ func _npc_icon_for(q: QuestDefinition) -> String:
 func _speak_lines(lines: PackedStringArray) -> void:
 	_speaking = true
 	for line in lines:
+		if not _speaking or not visible:
+			break
 		var t := str(line).strip_edges()
 		if t == "":
 			continue
 		_speech.play_text(t)
 		await _speech.finished
+		if not _speaking or not visible:
+			break
 		await get_tree().create_timer(0.12).timeout
 	_speaking = false
 

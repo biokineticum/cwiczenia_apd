@@ -6,6 +6,7 @@ extends Node3D
 signal arrangement_complete(word_ids: PackedStringArray)
 signal arrangement_changed(word_ids: PackedStringArray)
 signal board_reset
+signal cancel_requested
 
 const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
 const EchoPropScript = preload("res://scripts/listening/echo_prop.gd")
@@ -34,6 +35,8 @@ var _saved_player_accel: float = -1.0
 var _overlap_pulse_ms: int = 0
 var _reset_zone: Area3D = null
 var _reset_busy: bool = false
+var _cancel_zone: Area3D = null
+var _cancel_busy: bool = false
 
 
 func setup(
@@ -49,6 +52,8 @@ func setup(
 	_carry = null
 	_reset_zone = null
 	_reset_busy = false
+	_cancel_zone = null
+	_cancel_busy = false
 	_active = true
 	_pick_ready_ms = 0
 	position = origin
@@ -92,11 +97,12 @@ func setup(
 		prop.picked.connect(_on_prop_picked)
 		_props.append(prop)
 	_spawn_reset_zone(line_w)
+	_spawn_cancel_zone(line_w)
 	_assert_no_area_overlap()
 	_refresh_highlights()
 	_set_props_pickable(true)
 	print(
-		"[EchoBoard] pickups Δ=%.1fm @z=%.1f | slots Δ=%.1fm @z=%.1f | row_gap=%.1fm | speed×%.2f | reset pad"
+		"[EchoBoard] pickups Δ=%.1fm @z=%.1f | slots Δ=%.1fm @z=%.1f | row_gap=%.1fm | speed×%.2f | reset+cancel pads"
 		% [PICKUP_SPACING, PROP_Z, SLOT_SPACING, SLOT_Z, ROW_GAP, ANSWER_SPEED_MUL]
 	)
 
@@ -105,9 +111,13 @@ func teardown() -> void:
 	_active = false
 	_carry = null
 	_reset_busy = false
+	_cancel_busy = false
 	if _reset_zone and is_instance_valid(_reset_zone):
 		_reset_zone.set_armed(false)
 	_reset_zone = null
+	if _cancel_zone and is_instance_valid(_cancel_zone):
+		_cancel_zone.set_armed(false)
+	_cancel_zone = null
 	_apply_answer_speed(false)
 	_drop_carry_visual()
 	queue_free()
@@ -216,12 +226,28 @@ func _spawn_reset_zone(line_w: float) -> void:
 	_reset_zone = zone
 
 
+func _spawn_cancel_zone(line_w: float) -> void:
+	# Przeciwległy bok względem „od nowa” — czerwone X = wyjście z questa.
+	var zone: Area3D = WalkZone.new()
+	zone.name = "EchoCancelPad"
+	add_child(zone)
+	var side_x := -(0.5 * line_w + 2.2)
+	var mid_z := (PROP_Z + SLOT_Z) * 0.5
+	zone.setup("dismiss", "close", Vector3(side_x, 0.0, mid_z), Color(0.85, 0.35, 0.32))
+	zone.walked_in.connect(_on_cancel_zone)
+	_cancel_zone = zone
+
+
 func _on_reset_zone(_zone: Area3D) -> void:
 	call_deferred("_reset_from_walk_deferred")
 
 
+func _on_cancel_zone(_zone: Area3D) -> void:
+	call_deferred("_cancel_from_walk_deferred")
+
+
 func _reset_from_walk_deferred() -> void:
-	if not _active or _reset_busy:
+	if not _active or _reset_busy or _cancel_busy:
 		_rearm_reset_zone_later()
 		return
 	if not has_attempt_progress():
@@ -234,6 +260,17 @@ func _reset_from_walk_deferred() -> void:
 	if _speech:
 		_speech.play_text("Od nowa. Weź obrazki znowu.")
 	_rearm_reset_zone_later()
+
+
+func _cancel_from_walk_deferred() -> void:
+	if not _active or _cancel_busy:
+		return
+	_cancel_busy = true
+	if _reset_zone and is_instance_valid(_reset_zone):
+		_reset_zone.set_armed(false)
+	if _cancel_zone and is_instance_valid(_cancel_zone):
+		_cancel_zone.set_armed(false)
+	cancel_requested.emit()
 
 
 func _rearm_reset_zone_later() -> void:
@@ -309,6 +346,8 @@ func _place_on_slot_deferred(slot: Area3D) -> void:
 		_set_props_pickable(false)
 		if _reset_zone and is_instance_valid(_reset_zone):
 			_reset_zone.set_armed(false)
+		if _cancel_zone and is_instance_valid(_cancel_zone):
+			_cancel_zone.set_armed(false)
 		if _speech:
 			_speech.play_text("Brawo, wszystkie na miejscu.")
 		arrangement_complete.emit(get_placed_ids())

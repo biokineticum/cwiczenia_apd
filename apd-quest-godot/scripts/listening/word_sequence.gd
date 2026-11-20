@@ -5,6 +5,7 @@ extends Node
 const NoisePlayer = preload("res://scripts/audio/noise_player.gd")
 const SpeechPlayer = preload("res://scripts/audio/speech_player.gd")
 const EchoBoardScript = preload("res://scripts/listening/echo_board.gd")
+const WalkZone = preload("res://scripts/world/walk_confirm_zone.gd")
 
 signal finished(success: bool, detail: Dictionary)
 signal ui_changed(state: Dictionary)
@@ -24,6 +25,7 @@ var _fail_count: int = 0
 var _word_meta: Dictionary = {} # id -> {label, icon}
 var _board: Node3D = null
 var _finished: bool = false
+var _early_cancel: Area3D = null
 
 
 func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
@@ -102,8 +104,9 @@ func force_complete_board() -> void:
 
 
 func _demo_then_present() -> void:
-	# Podczas odsłuchu ruch zablokowany (dialog/quest).
-	QuestManager.movement_locked = true
+	# Czerwone X dostępne od startu; ruch odblokowany żeby wyjść gdy nuda.
+	_spawn_early_cancel_pad()
+	QuestManager.movement_locked = false
 	ui_changed.emit({
 		"phase": "demo",
 		"mode": "word_sequence",
@@ -119,17 +122,29 @@ func _demo_then_present() -> void:
 	})
 	_speech.play_text("Ułóż zaklęcie tak, jak usłyszysz.")
 	await _speech.finished
+	if _finished:
+		return
 	await get_tree().create_timer(0.25).timeout
+	if _finished:
+		return
 	_speech.play_text("Potem przejdziesz do przedmiotów i włożysz je do kółek z cyframi.")
 	await _speech.finished
+	if _finished:
+		return
 	await get_tree().create_timer(0.2).timeout
+	if _finished:
+		return
 	_present_sequence(true)
 
 
 func _present_sequence(_first: bool) -> void:
+	if _finished:
+		return
 	_presenting = true
 	_selected = PackedStringArray()
-	QuestManager.movement_locked = true
+	if _early_cancel == null or not is_instance_valid(_early_cancel):
+		_spawn_early_cancel_pad()
+	QuestManager.movement_locked = false
 	ui_changed.emit({
 		"phase": "present",
 		"mode": "word_sequence",
@@ -143,6 +158,8 @@ func _present_sequence(_first: bool) -> void:
 		"child_text_hidden": true,
 	})
 	for i in sequence.size():
+		if _finished:
+			return
 		var label := sequence_labels[i]
 		ui_changed.emit({
 			"phase": "present",
@@ -159,16 +176,32 @@ func _present_sequence(_first: bool) -> void:
 		})
 		_speech.play_text(label)
 		await _speech.finished
+		if _finished:
+			return
 		await get_tree().create_timer(0.7).timeout
+	if _finished:
+		return
 	_presenting = false
 	_speech.play_text("Twoja kolej. Wejdź w przedmiot, potem do kółka z cyfrą.")
 	await _speech.finished
+	if _finished:
+		return
 	_speech.play_text("Jak pomylisz, wejdź w pomarańczowe kółko od nowa.")
 	await _speech.finished
+	if _finished:
+		return
+	_speech.play_text("Czerwone kółko z krzyżykiem kończy zabawę.")
+	await _speech.finished
+	if _finished:
+		return
 	_spawn_board_and_unlock()
 
 
 func _spawn_board_and_unlock() -> void:
+	if _finished:
+		return
+	# Board ma własne EchoCancelPad — early pad niepotrzebny.
+	_clear_early_cancel()
 	_teardown_board()
 	_board = EchoBoardScript.new()
 	_board.name = "EchoBoard"
@@ -187,9 +220,56 @@ func _spawn_board_and_unlock() -> void:
 	_board.arrangement_complete.connect(_on_board_complete)
 	if _board.has_signal("board_reset"):
 		_board.board_reset.connect(_on_board_reset)
+	if _board.has_signal("cancel_requested"):
+		_board.cancel_requested.connect(_on_board_cancel)
 	# Dziewczynka MUSI chodzić — odblokuj ruch.
 	QuestManager.movement_locked = false
 	_emit_world_answer_ui()
+
+
+## Mid-run wyjście (walk red X) — sprząta board/TTS/szum i kończy sesję bez sukcesu.
+func cancel_run() -> void:
+	if _finished:
+		return
+	_finished = true
+	_presenting = false
+	if _speech and _speech.has_method("stop"):
+		_speech.stop()
+	if _noise:
+		_noise.stop()
+	_clear_early_cancel()
+	_teardown_board()
+	QuestManager.movement_locked = false
+	finished.emit(false, {"cancelled": true, "world_board": true, "mode": "word_sequence"})
+
+
+func _on_board_cancel() -> void:
+	cancel_run()
+
+
+func _spawn_early_cancel_pad() -> void:
+	# Dostępne już podczas odsłuchu (ruch odblokowany) — zanim plansza Echo powstanie.
+	_clear_early_cancel()
+	var scene := get_tree().current_scene if get_tree() else null
+	if scene == null:
+		return
+	var origin := Vector3(-12.0, 0.05, 7.5)
+	var echo_npc := _find_node_named("NpcEcho")
+	if echo_npc is Node3D:
+		origin = (echo_npc as Node3D).global_position + Vector3(4.5, 0.05, 7.5)
+	var z := WalkZone.new()
+	z.name = "EchoEarlyCancelPad"
+	scene.add_child(z)
+	z.setup("dismiss", "close", origin, Color(0.85, 0.35, 0.32))
+	z.walked_in.connect(func(_w): cancel_run())
+	_early_cancel = z
+
+
+func _clear_early_cancel() -> void:
+	if _early_cancel and is_instance_valid(_early_cancel):
+		_early_cancel.set_deferred("monitoring", false)
+		_early_cancel.call_deferred("queue_free")
+	_early_cancel = null
 
 
 func _emit_world_answer_ui() -> void:
@@ -364,4 +444,5 @@ func _same_packed(a: Variant, b: Variant) -> bool:
 
 
 func _exit_tree() -> void:
+	_clear_early_cancel()
 	_teardown_board()

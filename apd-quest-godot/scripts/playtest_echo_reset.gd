@@ -102,9 +102,10 @@ func _initialize() -> void:
 		_save_shot(shot_ok, "ok")
 
 	var pad_ok := board.get_node_or_null("EchoResetPad") != null
-	var all_ok := cleared and (not progress) and ok_order and pad_ok
-	print("[playtest-reset] RESULT=%s cleared=%s pad=%s order=%s" % [
-		"PASS" if all_ok else "FAIL", cleared, pad_ok, ok_order
+	var cancel_ok := board.get_node_or_null("EchoCancelPad") != null
+	var all_ok := cleared and (not progress) and ok_order and pad_ok and cancel_ok
+	print("[playtest-reset] RESULT=%s cleared=%s pad=%s cancel=%s order=%s" % [
+		"PASS" if all_ok else "FAIL", cleared, pad_ok, cancel_ok, ok_order
 	])
 	quit(0 if all_ok else 1)
 
