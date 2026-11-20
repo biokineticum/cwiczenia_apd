@@ -2,6 +2,8 @@ extends Node3D
 ## Bajkowa polana: pagórki, teksturowana trawa, drzewa z korą, chatka, płotek, lampiony, atmosfera.
 
 const MeshFactory = preload("res://scripts/art/mesh_factory.gd")
+const WindSway = preload("res://scripts/art/wind_sway.gd")
+const LanternFlicker = preload("res://scripts/art/lantern_flicker.gd")
 
 @export var world_size: float = 56.0
 @export var terrain_res: int = 52
@@ -222,22 +224,28 @@ func _make_tree(pos: Vector3, scale: float, seed: int) -> Node3D:
 	var leaf_b := Color(0.42, 0.7, 0.3)
 	var leaf := leaf_a.lerp(leaf_b, float(seed % 5) / 5.0)
 	MeshFactory.add_mesh(t, MeshFactory.cylinder(0.14, 0.26, 1.7, 10), bark, Vector3(0, 0.85, 0))
-	# Korona z kilku nieregularnych kul
+	# Canopy pivots ~mid-crown so WindSway bends leaves, not the trunk.
+	var canopy: Node3D = WindSway.new()
+	canopy.name = "Canopy"
+	canopy.position = Vector3(0, 2.2, 0)
+	canopy.set("amp_deg", 2.6 + float(seed % 3) * 0.4)
+	canopy.set("speed", 0.75 + float(seed % 5) * 0.07)
+	t.add_child(canopy)
 	var offsets := [
-		Vector3(0, 2.25, 0), Vector3(0.45, 2.4, 0.2), Vector3(-0.4, 2.35, -0.15),
-		Vector3(0.15, 2.7, -0.25), Vector3(-0.2, 2.55, 0.35), Vector3(0.35, 2.15, -0.35),
+		Vector3(0, 0.05, 0), Vector3(0.45, 0.2, 0.2), Vector3(-0.4, 0.15, -0.15),
+		Vector3(0.15, 0.5, -0.25), Vector3(-0.2, 0.35, 0.35), Vector3(0.35, -0.05, -0.35),
 	]
 	var si := 0
 	for off in offsets:
 		var s := 0.55 + (si % 3) * 0.12
 		var col := leaf.lightened(0.04 * (si % 3)).darkened(0.03 * ((si + 1) % 2))
-		MeshFactory.add_mesh(t, MeshFactory.sphere(s, 14), MeshFactory.mat(col, 0.86), off)
+		MeshFactory.add_mesh(canopy, MeshFactory.sphere(s, 14), MeshFactory.mat(col, 0.86), off)
 		si += 1
 	if seed % 2 == 0:
 		var glow := MeshFactory.mat(Color(1.0, 0.55, 0.7), 0.45, 0.0, Color(1.0, 0.4, 0.6), 0.55)
-		MeshFactory.add_mesh(t, MeshFactory.sphere(0.08), glow, Vector3(0.5, 2.1, 0.35))
-		MeshFactory.add_mesh(t, MeshFactory.sphere(0.07), glow, Vector3(-0.4, 2.3, 0.3))
-		MeshFactory.add_mesh(t, MeshFactory.sphere(0.06), glow, Vector3(0.1, 2.55, 0.4))
+		MeshFactory.add_mesh(canopy, MeshFactory.sphere(0.08), glow, Vector3(0.5, -0.1, 0.35))
+		MeshFactory.add_mesh(canopy, MeshFactory.sphere(0.07), glow, Vector3(-0.4, 0.1, 0.3))
+		MeshFactory.add_mesh(canopy, MeshFactory.sphere(0.06), glow, Vector3(0.1, 0.35, 0.4))
 	return t
 
 
@@ -245,8 +253,10 @@ func _build_bushes() -> void:
 	var spots := [Vector3(-4.5, 0, -6), Vector3(5.2, 0, -5.5), Vector3(-2.2, 0, 5.5), Vector3(3.5, 0, 4.8), Vector3(-7.5, 0, 1)]
 	var i := 0
 	for p in spots:
-		var b := Node3D.new()
+		var b: Node3D = WindSway.new()
 		b.position = p
+		b.set("amp_deg", 3.2)
+		b.set("speed", 1.05)
 		var col := Color(0.28, 0.55, 0.3).lightened(0.05 * (i % 3))
 		MeshFactory.add_mesh(b, MeshFactory.sphere(0.45), MeshFactory.mat(col, 0.9), Vector3(0, 0.35, 0), Vector3(1.3, 0.85, 1.2))
 		MeshFactory.add_mesh(b, MeshFactory.sphere(0.32), MeshFactory.mat(col.lightened(0.08), 0.88), Vector3(0.25, 0.4, 0.1))
@@ -269,9 +279,12 @@ func _build_flowers() -> void:
 
 
 func _make_flower(pos: Vector3, col: Color, scale: float) -> Node3D:
-	var f := Node3D.new()
+	var f: Node3D = WindSway.new()
 	f.position = pos
 	f.scale = Vector3.ONE * scale
+	f.set("amp_deg", 4.5)
+	f.set("speed", 1.15)
+	f.set("secondary_amp_deg", 2.0)
 	MeshFactory.add_mesh(f, MeshFactory.cylinder(0.015, 0.02, 0.24), MeshFactory.mat(Color(0.28, 0.55, 0.22)), Vector3(0, 0.12, 0))
 	var petal := MeshFactory.mat(col, 0.65, 0.0, col, 0.18)
 	for a in 6:
@@ -372,11 +385,15 @@ func _build_lanterns() -> void:
 		MeshFactory.add_mesh(L, MeshFactory.box(Vector3(0.35, 0.4, 0.35)), glass, Vector3(0, 1.55, 0))
 		MeshFactory.add_mesh(L, MeshFactory.box(Vector3(0.4, 0.08, 0.4)), pole, Vector3(0, 1.78, 0))
 		var light := OmniLight3D.new()
+		light.name = "LanternLight"
 		light.light_color = Color(1.0, 0.85, 0.5)
 		light.light_energy = 1.4
 		light.omni_range = 5.0
 		light.position = Vector3(0, 1.55, 0)
 		L.add_child(light)
+		var flicker: Node = LanternFlicker.new()
+		flicker.name = "Flicker"
+		light.add_child(flicker)
 		add_child(L)
 
 

@@ -52,14 +52,15 @@ godot --path apd-quest-godot --headless -s res://scripts/smoke_test.gd
 
 ## Wygląd (bajkowy art pass)
 
-Polana, postacie i rekwizyty są **proceduralnymi mesh’ami** (sukienki, włosy, twarze, chatka, drzewa, kwiaty, ścieżka, mgła, iskierki) — bez zewnętrznych paczek 3D w tym PR.  
-Kolorystyka: ciepłe niebo / lawendowy fog, czytelne sylwetki dla dzieci.  
-Później można podmienić na modele CC0 (np. Kenney Nature Kit) — attribution w README przy dodaniu plików.
+Polana (chatka, drzewa, kwiaty, ścieżka, mgła, iskierki) = mesh proceduralny.  
+**Postacie** = Grab3D CC0 **rigged** GLB (Child / Elf / Witch) z klipami **walk** + **run**; idle = lekki proceduralny oddech/kołysanie.  
+Świat: wiatr na koronach drzew i kwiatach, migotanie lampionów. Licencje: `assets/models/characters/LICENSE.txt`.
 
 | Element | Ścieżka |
 |---------|---------|
 | Budowa polany | `scripts/art/fairy_clearing_builder.gd` |
-| Postacie stylizowane | `scripts/art/stylized_character_builder.gd` |
+| Postacie (GLB + anim) | `scripts/art/stylized_character_builder.gd` |
+| Locomotion / idle | `scripts/art/character_animator.gd` |
 | Fabryka mesh/materiałów | `scripts/art/mesh_factory.gd` |
 
 ## Co jest w projekcie

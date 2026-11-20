@@ -16,6 +16,7 @@ const StylizedCharacterBuilder = preload("res://scripts/art/stylized_character_b
 var _yaw: float = 0.0
 var _pitch: float = -0.22
 var _look_enabled: bool = false
+var _animator: Node = null
 
 
 func _ready() -> void:
@@ -29,6 +30,7 @@ func _ready() -> void:
 			built.remove_child(c)
 			visual.add_child(c)
 		built.free()
+	_animator = visual.get_node_or_null("CharacterAnimator")
 	# Mesh front = +Z (FaceFront). Default cam is on +Z looking −Z; start facing
 	# world −Z so the camera behind the girl sees occiput hair, not eye discs.
 	visual.rotation.y = PI
@@ -79,6 +81,15 @@ func _physics_process(delta: float) -> void:
 		velocity.z = move_toward(velocity.z, 0.0, acceleration * delta)
 
 	move_and_slide()
+	_update_locomotion_anim()
+
+
+func _update_locomotion_anim() -> void:
+	if _animator == null or not is_instance_valid(_animator):
+		_animator = visual.get_node_or_null("CharacterAnimator") if visual else null
+	if _animator and _animator.has_method("set_locomotion_speed"):
+		var planar := Vector2(velocity.x, velocity.z).length()
+		_animator.call("set_locomotion_speed", planar)
 
 
 func _apply_camera() -> void:
