@@ -139,6 +139,10 @@ func _rebuild_visual() -> void:
 		built.remove_child(child)
 		visual.add_child(child)
 	built.free()
+	# Soft idle breath/sway — NPCs stay lively while waiting.
+	var anim := visual.get_node_or_null("CharacterAnimator")
+	if anim and anim.has_method("play_idle"):
+		anim.call("play_idle", true)
 
 
 ## Place Node3D NPC origin on terrain (player uses CharacterBody3D floor snap).

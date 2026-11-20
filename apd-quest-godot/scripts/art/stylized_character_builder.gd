@@ -1,8 +1,11 @@
 extends RefCounted
 class_name StylizedCharacterBuilder
-## Characters from imported CC0 Grab3D GLBs (same fidelity family).
+## Characters from Grab3D rigged CC0 GLBs (walk + run clips).
 ## Player: Child. Echo: Elf. Burza/Storm: Witch.
 ## Keep FaceFront marker +Z; gameplay/collision unchanged.
+## Animation: CharacterAnimator on Visual (procedural idle + walk/run).
+
+const CharacterAnimator = preload("res://scripts/art/character_animator.gd")
 
 enum Style { GIRL, ECHO, STORM }
 
@@ -58,6 +61,11 @@ static func build(style: Style, accent: Color = Color.WHITE) -> Node3D:
 	face_mark.name = "FaceFront"
 	face_mark.position = Vector3(0.0, 1.15 * scale + FOOT_CLEARANCE, 0.12 * scale)
 	root.add_child(face_mark)
+
+	var animator: Node = CharacterAnimator.new()
+	animator.name = "CharacterAnimator"
+	root.add_child(animator)
+	# CharacterAnimator._ready → setup(parent Visual) after reparent into player/NPC.
 	return root
 
 
