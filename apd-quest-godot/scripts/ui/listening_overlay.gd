@@ -234,6 +234,23 @@ func _show_warm_success() -> void:
 
 func _on_session_finished(success: bool, detail: Dictionary) -> void:
 	print("[ListeningOverlay] wynik=%s detail=%s" % [success, detail])
+	var cancelled := bool(detail.get("cancelled", false))
+	if cancelled:
+		# Szybkie wyjście — bez warm feedback; dziecko idzie do drugiego questa.
+		visible = false
+		if has_node("Dim"):
+			$Dim.visible = false
+		warm_feedback.visible = false
+		ear_flash.visible = false
+		_clear_choices()
+		_clear_slots()
+		if parent_overlay.visible:
+			parent_overlay.visible = false
+		if is_instance_valid(_session):
+			_session.queue_free()
+			_session = null
+		QuestManager.cancel_active_quest()
+		return
 	if success:
 		_show_warm_success()
 	else:

@@ -167,6 +167,21 @@ func complete_active_quest(success: bool) -> void:
 	])
 
 
+## Mid-run wyjście (czerwone X): bez punktów / badge / licznika runs — dziecko może iść do drugiego NPC.
+func cancel_active_quest() -> void:
+	if active_quest == null:
+		return
+	var q := active_quest
+	active_quest = null
+	movement_locked = false
+	offering_quest_id = ""
+	dialog_busy = false
+	renew_npc(q.npc_id)
+	interact_available.emit()
+	quest_finished.emit(q, false)
+	print("[QuestManager] Cancel run: %s (no run count)" % q.id)
+
+
 func renew_npc(npc_id: String) -> void:
 	get_tree().call_group("npc", "on_quest_renew", npc_id)
 

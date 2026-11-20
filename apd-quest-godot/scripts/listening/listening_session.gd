@@ -74,6 +74,14 @@ func set_noise_enabled(enabled: bool) -> void:
 		_module.set_noise_enabled(enabled)
 
 
+## Mid-run wyjście — deleguje do modułu Echo/Burza (czerwone X).
+func cancel() -> void:
+	if _module == null:
+		return
+	if _module.has_method("cancel_run"):
+		_module.cancel_run()
+
+
 func _on_module_finished(success: bool, detail: Dictionary = {}) -> void:
 	session_finished.emit(success, detail)
 	if is_instance_valid(_module):

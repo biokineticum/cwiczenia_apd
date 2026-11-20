@@ -19,6 +19,7 @@ var _noise_type: String = "pink"
 var _answered: bool = false
 var _fail_count: int = 0
 var _zones: Array = []
+var _cancel_zone: Area3D = null
 
 
 func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
@@ -40,6 +41,20 @@ func begin(noise_on: bool, relative_level: float, noise_type: String) -> void:
 		target_sentence, target_illustration, _noise_on
 	])
 	await _present_then_ask()
+
+
+## Mid-run wyjście (walk red X).
+func cancel_run() -> void:
+	if _answered:
+		return
+	_answered = true
+	if _speech and _speech.has_method("stop"):
+		_speech.stop()
+	if _noise:
+		_noise.stop()
+	_clear_zones()
+	QuestManager.movement_locked = false
+	finished.emit(false, {"cancelled": true, "mode": "speech_in_noise"})
 
 
 func submit_choice(illustration_id: String) -> void:
@@ -122,7 +137,9 @@ func get_parent_stimulus_text() -> String:
 
 func _present_then_ask() -> void:
 	_clear_zones()
-	QuestManager.movement_locked = true
+	# Czerwone X już podczas odsłuchu — dziecko może wyjść gdy nuda.
+	_spawn_early_cancel_pad()
+	QuestManager.movement_locked = false
 	ui_changed.emit({
 		"phase": "present",
 		"mode": "speech_in_noise",
@@ -135,14 +152,22 @@ func _present_then_ask() -> void:
 		"parent_text": target_sentence,
 		"child_text_hidden": true,
 	})
+	if _answered:
+		return
 	_speech.play_text("Posłuchaj. Potem wejdź w obrazek.")
 	await _speech.finished
 	await get_tree().create_timer(0.15).timeout
+	if _answered:
+		return
 	_speech.play_text(target_sentence)
 	await _speech.finished
 	await get_tree().create_timer(0.15).timeout
-	_speech.play_text("Wejdź w obrazek.")
+	if _answered:
+		return
+	_speech.play_text("Wejdź w obrazek. Czerwone kółko kończy zabawę.")
 	await _speech.finished
+	if _answered:
+		return
 	_spawn_choice_pads()
 	QuestManager.movement_locked = false
 	ui_changed.emit({
@@ -158,6 +183,23 @@ func _present_then_ask() -> void:
 		"child_text_hidden": true,
 		"can_undo": false,
 	})
+
+
+func _spawn_early_cancel_pad() -> void:
+	var scene := get_tree().current_scene
+	if scene == null:
+		return
+	var player := _find_player()
+	var origin := Vector3(0, 0.05, 0)
+	if player:
+		origin = player.global_position
+	var cancel := WalkZone.new()
+	cancel.name = "BurzaCancelPad"
+	scene.add_child(cancel)
+	cancel.setup("dismiss", "close", origin + Vector3(0.0, 0.0, 1.6), Color(0.85, 0.35, 0.32))
+	cancel.walked_in.connect(_on_cancel_zone)
+	_cancel_zone = cancel
+	_zones.append(cancel)
 
 
 func _spawn_choice_pads() -> void:
@@ -179,6 +221,15 @@ func _spawn_choice_pads() -> void:
 		z.setup("choice", str(_choice_icons[i]), pos, Color(0.95, 0.88, 0.55), str(_choice_icons[i]))
 		z.walked_in.connect(_on_choice_zone)
 		_zones.append(z)
+	# Czerwone X — wyjście z Burzy bez wyboru obrazka (zostaje też w answer).
+	var cancel := WalkZone.new()
+	cancel.name = "BurzaCancelPad"
+	scene.add_child(cancel)
+	var cancel_pos := origin + Vector3(0.0, 0.0, 1.6)
+	cancel.setup("dismiss", "close", cancel_pos, Color(0.85, 0.35, 0.32))
+	cancel.walked_in.connect(_on_cancel_zone)
+	_cancel_zone = cancel
+	_zones.append(cancel)
 
 
 func _on_choice_zone(zone: Area3D) -> void:
@@ -188,12 +239,17 @@ func _on_choice_zone(zone: Area3D) -> void:
 	submit_choice(cid)
 
 
+func _on_cancel_zone(_zone: Area3D) -> void:
+	cancel_run()
+
+
 func _clear_zones() -> void:
 	for z in _zones:
 		if is_instance_valid(z):
 			z.set_deferred("monitoring", false)
 			z.call_deferred("queue_free")
 	_zones.clear()
+	_cancel_zone = null
 
 
 func _find_player() -> Node3D:

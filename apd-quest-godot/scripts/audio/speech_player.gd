@@ -55,12 +55,16 @@ func play_stream(stream: AudioStream) -> void:
 
 
 func stop() -> void:
+	# Jeśli ktoś `await finished` (np. cancel mid-run) — odblokuj await.
+	var was_waiting := _waiting
 	_waiting = false
 	_duck_noise(false)
 	if DisplayServer.tts_is_speaking():
 		DisplayServer.tts_stop()
 	if _player and _player.playing:
 		_player.stop()
+	if was_waiting:
+		finished.emit()
 
 
 func _duck_noise(active: bool) -> void:
