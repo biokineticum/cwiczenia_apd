@@ -53,7 +53,7 @@ godot --path apd-quest-godot --headless -s res://scripts/smoke_test.gd
 ## Wygląd (bajkowy art pass)
 
 Polana (chatka, drzewa, kwiaty, ścieżka, mgła, iskierki) = mesh proceduralny.  
-**Postacie** = Grab3D CC0 **rigged** GLB (Child / Elf / Witch) z klipami **walk** + **run**; idle = lekki proceduralny oddech/kołysanie.  
+**Postacie** = Grab3D CC0 **rigged** GLB (Child / Elf / Witch) z klipami **walk** + **run**; idle = pierwsza klatka walk (nie T-pose) + lekki oddech kręgosłupa.  
 Świat: wiatr na koronach drzew i kwiatach, migotanie lampionów. Licencje: `assets/models/characters/LICENSE.txt`.
 
 | Element | Ścieżka |

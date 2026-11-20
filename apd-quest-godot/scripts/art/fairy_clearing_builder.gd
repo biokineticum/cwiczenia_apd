@@ -9,8 +9,10 @@ const LanternFlicker = preload("res://scripts/art/lantern_flicker.gd")
 @export var terrain_res: int = 52
 
 ## Flat stand pads under Echo (−17,0) and Burza (17,0) — matches main.tscn spawns.
+## Radius covers NPC + dialog confirm pads (INWARD 3.2 m) so green/red circles
+## sit on level ground the player can enter — not buried under rim hills.
 ## Without these, rim hills bury Node3D NPCs while the CharacterBody3D player rides the heightmap.
-const NPC_PAD_HALF_XZ := 2.5
+const NPC_PAD_HALF_XZ := 4.5
 const NPC_PAD_Y := 0.03
 const NPC_ECHO_XZ := Vector2(-17.0, 0.0)
 const NPC_STORM_XZ := Vector2(17.0, 0.0)

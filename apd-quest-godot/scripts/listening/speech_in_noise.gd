@@ -196,7 +196,9 @@ func _spawn_early_cancel_pad() -> void:
 	var cancel := WalkZone.new()
 	cancel.name = "BurzaCancelPad"
 	scene.add_child(cancel)
-	cancel.setup("dismiss", "close", origin + Vector3(0.0, 0.0, 1.6), Color(0.85, 0.35, 0.32))
+	var cancel_pos := origin + Vector3(0.0, 0.0, 1.6)
+	cancel_pos.y = _ground_y_at(cancel_pos, origin.y)
+	cancel.setup("dismiss", "close", cancel_pos, Color(0.85, 0.35, 0.32))
 	cancel.walked_in.connect(_on_cancel_zone)
 	_cancel_zone = cancel
 	_zones.append(cancel)
@@ -218,6 +220,7 @@ func _spawn_choice_pads() -> void:
 		var z := WalkZone.new()
 		scene.add_child(z)
 		var pos := origin + Vector3(start_x + float(i) * spacing, 0.0, -2.4)
+		pos.y = _ground_y_at(pos, origin.y)
 		z.setup("choice", str(_choice_icons[i]), pos, Color(0.95, 0.88, 0.55), str(_choice_icons[i]))
 		z.walked_in.connect(_on_choice_zone)
 		_zones.append(z)
@@ -226,10 +229,29 @@ func _spawn_choice_pads() -> void:
 	cancel.name = "BurzaCancelPad"
 	scene.add_child(cancel)
 	var cancel_pos := origin + Vector3(0.0, 0.0, 1.6)
+	cancel_pos.y = _ground_y_at(cancel_pos, origin.y)
 	cancel.setup("dismiss", "close", cancel_pos, Color(0.85, 0.35, 0.32))
 	cancel.walked_in.connect(_on_cancel_zone)
 	_cancel_zone = cancel
 	_zones.append(cancel)
+
+
+func _ground_y_at(at: Vector3, fallback_y: float) -> float:
+	var world := get_viewport().world_3d if get_viewport() else null
+	if world == null:
+		return fallback_y + 0.02
+	var space := world.direct_space_state
+	if space == null:
+		return fallback_y + 0.02
+	var query := PhysicsRayQueryParameters3D.create(
+		Vector3(at.x, 20.0, at.z), Vector3(at.x, -40.0, at.z)
+	)
+	query.collision_mask = 1
+	query.collide_with_areas = false
+	var hit := space.intersect_ray(query)
+	if hit.is_empty():
+		return fallback_y + 0.02
+	return float(hit.position.y) + 0.02
 
 
 func _on_choice_zone(zone: Area3D) -> void:

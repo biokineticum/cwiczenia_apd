@@ -167,6 +167,11 @@ func _snap_feet_to_ground() -> void:
 	var hit_y: float = hit.position.y
 	global_position.y = hit_y
 	print("[%s] feet snapped to ground Y=%.3f" % [display_name, hit_y])
+	# Re-enable / refresh overlap after Y move so Burza/Echo interact still fires.
+	if _area:
+		_area.set_deferred("monitoring", not QuestManager.npc_interact_blocked())
+		_area_enabled = not QuestManager.npc_interact_blocked()
+		call_deferred("_refresh_overlap")
 
 
 func _try_talk() -> void:
